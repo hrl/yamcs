@@ -3,7 +3,7 @@
 
 struct container
 {
-	void *data;
+	void **data;
 	struct container *next;
 };
 
@@ -14,11 +14,10 @@ struct category
 	char code;
 	char name[10];
 	int clothes_count;
-	struct category *prev;
 	struct category *next;
 	struct clothes *clothes;
 	int (*__delete)(Container **self);
-	int (*__edit)(Container **self, int argc, void *argv[]);
+	int (*__edit)(Container **self, void *data);
 };
 
 struct clothes
@@ -28,12 +27,11 @@ struct clothes
 	float price;
 	int order_count;
 	float mark;
-	struct clothes *prev;
 	struct clothes *next;
 	struct category *category;
 	struct order *order;
-	int (*__delete)(struct clothes *self);
-	int (*__edit)(struct clothes *self, int argc, void *argv[]);
+	int (*__delete)(Container **self);
+	int (*__edit)(Container **self, void *data);
 };
 
 struct order
@@ -41,12 +39,11 @@ struct order
 	char date[10];
 	char name[20];
 	int mark;
-	struct order *prev;
 	struct order *next;
 	struct clothes *clothes;
 	struct category *category;
-	int (*__delete)(struct order *self);
-	int (*__edit)(struct order *self, int argc, void *argv[]);
+	int (*__delete)(Container **self);
+	int (*__edit)(Container **self, void *data);
 };
 
 typedef struct category Category;

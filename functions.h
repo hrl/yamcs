@@ -7,13 +7,11 @@
 /* Helper function */
 void error_out(char *error);
 void build_UI();
-void insert_into_container(Container **head, void *data);
-int category_delete(Category *self);
-int category_edit(Category *self, int argc, void *argv[]);
-int clothes_delete(struct clothes *self);
-int clothes_edit(struct clothes *self, int argc, void *argv[]);
-int order_delete(struct order *self);
-int order_edit(struct order *self, int argc, void *argv[]);
+void insert_into_container(Container **head, void **data);
+int category_edit(Container **self, void *data);
+int clothes_edit(Container **self, void *data);
+int order_edit(Container **self, void *data);
+int data_delete(Container **self);
 /* End Helper function */
 
 /* Basic I/O */

@@ -101,7 +101,7 @@ void build_UI(){
   gtk_widget_show_all(window);
 }
 
-void insert_into_container(Container **head, void *data){
+void insert_into_container(Container **head, void **data){
   Container *temp;
   temp = (Container *)malloc(sizeof(Container));
   temp->data = data;
@@ -180,10 +180,7 @@ short load_file(){
           /* load failed, file ended */
           break;
         }
-        load_category_tail->prev = load_category_temp;
         count++;
-        
-        insert_into_container(&category_list_head, load_category_tail);
 
           /* load clothes */
           if(load_category_tail->clothes_count){
@@ -198,8 +195,6 @@ short load_file(){
               /* load current clothes */
               fread(load_clothes_tail, sizeof(Clothes), 1, file);
               load_clothes_tail->category = load_category_tail;
-              load_clothes_tail->prev = load_clothes_temp;
-              insert_into_container(&clothes_list_head, load_clothes_tail);
 
                 /* load order */
                 if(load_clothes_tail->order_count){
@@ -215,19 +210,19 @@ short load_file(){
                     fread(load_order_tail, sizeof(Order), 1, file);
                     load_order_tail->clothes = load_clothes_tail;
                     load_order_tail->category = load_category_tail;
-                    load_order_tail->prev = load_order_temp;
-                    insert_into_container(&order_list_head, load_order_tail);
                     /* end load current order */
                     /* prepare for next order */
                     order_processed++;
                     load_order_temp = load_order_tail;
                     load_order_tail->next = (Order *)malloc(sizeof(Order));
+                    insert_into_container(&order_list_head, (void **)&(load_order_tail->next));
                     load_order_tail = load_order_tail->next;
                   } while(order_processed < load_clothes_tail->order_count);
                   load_order_temp->next = NULL;
                   free(load_order_tail);
 
                   load_clothes_tail->order = load_order_head;
+                  order_list_head->data = (void **)&(load_clothes_tail->order);
                 } else {
                   load_clothes_tail->order = NULL;
                 }
@@ -238,12 +233,14 @@ short load_file(){
               clothes_processed++;
               load_clothes_temp = load_clothes_tail;
               load_clothes_tail->next = (Clothes *)malloc(sizeof(Clothes));
+              insert_into_container(&clothes_list_head, (void **)&(load_clothes_tail->next));
               load_clothes_tail = load_clothes_tail->next;
             } while(clothes_processed < load_category_tail->clothes_count);
             load_clothes_temp->next = NULL;
             free(load_clothes_tail);
 
             load_category_tail->clothes = load_clothes_head;
+            clothes_list_head->data = (void **)&(load_category_tail->clothes);
           } else {
             load_category_tail->clothes = NULL;
           }
@@ -253,6 +250,7 @@ short load_file(){
         /* prepare for next category */
         load_category_temp = load_category_tail;
         load_category_tail->next = (Category *)malloc(sizeof(Category));
+        insert_into_container(&category_list_head, (void **)&(load_category_tail->next));
         load_category_tail = load_category_tail->next;
       } while(!feof(file));
       free(load_category_tail);
@@ -260,6 +258,7 @@ short load_file(){
       if(count){
         load_category_temp->next = NULL;
         category_head = load_category_head;
+        category_list_head->data = (void **)&(category_head);
       } else {
         category_head = NULL;
       }
