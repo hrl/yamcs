@@ -24,4 +24,10 @@ enum {
 	FILE_CHOOSE_SAVE_AS,
 };
 
+enum {
+	TYPE_CATEGORY,
+	TYPE_CLOTHES,
+	TYPE_ORDER,
+};
+
 #endif /* defines.h */

@@ -7,11 +7,14 @@
 /* Helper function */
 void error_out(char *error);
 void build_UI();
-void insert_into_container(Container **head, void **data);
+void insert_into_container(Container **head, void *data);
 int category_edit(Container **self, void *data);
 int clothes_edit(Container **self, void *data);
 int order_edit(Container **self, void *data);
-int data_delete(Container **self);
+
+int category_create(Category **head ,char code, char name[], int clothes_count, Clothes **clothes);
+
+int data_delete(Container **self, int type);
 /* End Helper function */
 
 /* Basic I/O */
@@ -29,7 +32,9 @@ void file_quit();
 /* End Basic I/O */
 
 /* Maintenance */
-
+void maintenance_add_category();
+void maintenance_add_clothes();
+void maintenance_add_order();
 /* End Maintenance */
 
 /* Query */
