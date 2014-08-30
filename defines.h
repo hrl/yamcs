@@ -7,16 +7,16 @@ const char *version = "0.1";
 const char *program_name = "Yet Another Manager of a simple Clothing Shop";
 const char *author[] = {"Ruilin Huang", NULL};
 
-FILE *file;
+FILE *file = NULL;
 short updated; /*  */
-GtkWidget *window;
-GtkTreeView *treeview;
+GtkWidget *window = NULL;
+GtkTreeView *treeview = NULL;
 
 Category *category_head;  /* Main head of the linked list */
 
-Container *category_list_head;
-Container *clothes_list_head;
-Container *order_list_head;
+Container *category_list_head = NULL;
+Container *clothes_list_head = NULL;
+Container *order_list_head = NULL;
 
 enum {
 	FILE_CHOOSE_OPEN,

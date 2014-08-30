@@ -23,7 +23,7 @@ void clean_var(){
 }
 
 void build_UI(){
-  GtkBuilder *builder;
+  GtkBuilder *builder = NULL;
   GError *error = NULL;
   builder = gtk_builder_new();
   if(!gtk_builder_add_from_file(builder, UI_FILE, &error)){
@@ -104,10 +104,14 @@ void build_UI(){
 }
 
 void insert_into_container(Container **head, void *data){
-  Container *temp;
+  Container *temp = NULL;
   temp = (Container *)malloc(sizeof(Container));
   temp->data = data;
-  temp->next = *head;
+  if(*head){
+    temp->next = *head;
+  } else {
+    temp->next = NULL;
+  }
   *head = temp;
 }
 
@@ -117,48 +121,98 @@ int data_delete(Container **self, int type){
   if(type == TYPE_CATEGORY){
     Category **target = (Category **)((*self)->data);
     Category *needfree = *target;
-    *target = (*target)->next;
+    *target = needfree->next;
     free(needfree);
+    needfree = NULL;
   } else if(type == TYPE_CLOTHES){
     Clothes **target = (Clothes **)((*self)->data);
     Clothes *needfree = *target;
-    *target = (*target)->next;
+    *target = needfree->next;
     free(needfree);
+    needfree = NULL;
   } else if(type == TYPE_ORDER){
     Order **target = (Order **)((*self)->data);
     Order *needfree = *target;
-    *target = (*target)->next;
+    *target = needfree->next;
     free(needfree);
+    needfree = NULL;
   } else {
     return 0;
   }
 
   /* delete container */
   Container *needfree = *self;
-  *self = (*self)->next;
+  *self = needfree->next;
   free(needfree);
+  needfree = NULL;
   return 1;
 }
 
-int category_create(Category **head ,char code, char name[], int clothes_count, Clothes **clothes){
-  Category *tmp;
+int category_create(Category **head ,char code, char name[], int clothes_count, Clothes *clothes){
+  Category *tmp = NULL;
   tmp = (Category *)malloc(sizeof(Category));
   tmp->code = code;
   strcpy(tmp->name, name);
   tmp->clothes_count = clothes_count;
-  if(clothes){
-    tmp->clothes = *clothes;
-  } else {
-    tmp->clothes = NULL;
-  }
+  tmp->clothes = clothes;
+
 
   tmp->next = *head;
   if(*head){
-    insert_into_container(&category_list_head, (void *)&(tmp->next));
+    insert_into_container(&category_list_head, &(tmp->next));
   } else {
-    insert_into_container(&category_list_head, (void *)head);
+    insert_into_container(&category_list_head, head);
   }
   *head = tmp;
+
+  return 1;
+}
+
+int clothes_create(Clothes **head, char name[], char type, float price, int order_count, float mark, Category *category, Order *order){
+  Clothes *tmp = NULL;
+  tmp = (Clothes *)malloc(sizeof(Clothes));
+  strcpy(tmp->name, name);
+  tmp->type = type;
+  tmp->price = price;
+  tmp->order_count = order_count;
+  tmp->mark = mark;
+  tmp->category = category;
+  tmp->order = order;
+
+  tmp->next = *head;
+  if(*head){
+    insert_into_container(&clothes_list_head, (void *)&(tmp->next));
+  } else {
+    insert_into_container(&clothes_list_head, (void *)head);
+  }
+  *head = tmp;
+
+  /* edit the category stats */
+  //category->clothes_count = category->clothes_count + 1;
+
+  return 1;
+}
+
+int order_create(Order **head, char date[], char name[], int mark, Clothes *clothes){
+  Order *tmp = NULL;
+  tmp = (Order *)malloc(sizeof(Order));
+  strcpy(tmp->date, date);
+  strcpy(tmp->name, name);
+  tmp->mark = mark;
+  tmp->clothes = clothes;
+  tmp->category = clothes->category;
+
+  tmp->next = *head;
+  if(*head){
+    insert_into_container(&order_list_head, (void *)&(tmp->next));
+  } else {
+    insert_into_container(&order_list_head, (void *)head);
+  }
+  *head = tmp;
+
+  /* edit the clothes stats */
+  tmp->clothes->mark = (tmp->clothes->mark * tmp->clothes->order_count + mark) / (tmp->clothes->order_count + 1.0);
+  tmp->clothes->order_count += 1;
 
   return 1;
 }
@@ -222,7 +276,7 @@ short load_file(){
     /* load category */
     if(!feof(file)){
       int count = 0;
-      Category *load_category_head, *load_category_tail, *load_category_temp;
+      Category *load_category_head = NULL, *load_category_tail = NULL, *load_category_temp = NULL;
       load_category_head = (Category *)malloc(sizeof(Category));
       load_category_tail = load_category_head;
       load_category_temp = NULL;
@@ -237,7 +291,7 @@ short load_file(){
 
           /* load clothes */
           if(load_category_tail->clothes_count){
-            Clothes *load_clothes_head, *load_clothes_tail, *load_clothes_temp;
+            Clothes *load_clothes_head = NULL, *load_clothes_tail = NULL, *load_clothes_temp = NULL;
             load_clothes_head = (Clothes *)malloc(sizeof(Clothes));
             load_clothes_tail = load_clothes_head;
             load_clothes_temp = NULL;
@@ -251,7 +305,7 @@ short load_file(){
 
                 /* load order */
                 if(load_clothes_tail->order_count){
-                  Order *load_order_head, *load_order_tail, *load_order_temp;
+                  Order *load_order_head = NULL, *load_order_tail = NULL, *load_order_temp = NULL;
                   load_order_head = (Order *)malloc(sizeof(Order));
                   load_order_tail = load_order_head;
                   load_order_temp = NULL;
@@ -273,6 +327,7 @@ short load_file(){
                   } while(order_processed < load_clothes_tail->order_count);
                   load_order_temp->next = NULL;
                   free(load_order_tail);
+                  load_order_tail = NULL;
 
                   load_clothes_tail->order = load_order_head;
                   order_list_head->data = (void *)&(load_clothes_tail->order);
@@ -291,6 +346,7 @@ short load_file(){
             } while(clothes_processed < load_category_tail->clothes_count);
             load_clothes_temp->next = NULL;
             free(load_clothes_tail);
+            load_clothes_tail = NULL;
 
             load_category_tail->clothes = load_clothes_head;
             clothes_list_head->data = (void *)&(load_category_tail->clothes);
@@ -307,6 +363,7 @@ short load_file(){
         load_category_tail = load_category_tail->next;
       } while(!feof(file));
       free(load_category_tail);
+      load_category_tail = NULL;
 
       if(count){
         load_category_temp->next = NULL;
@@ -335,8 +392,8 @@ void close_file(){
 
 char *file_choose(int type){
   error_out("file_choose called.");
-  GtkWidget *dialog;
-  GtkFileChooser *chooser;
+  GtkWidget *dialog = NULL;
+  GtkFileChooser *chooser = NULL;
 
   if(type == FILE_CHOOSE_OPEN){
     dialog = gtk_file_chooser_dialog_new(
@@ -377,38 +434,46 @@ void file_new(){
   clean_var();
 
   /* for test */
+
+  g_print("%p, %p, %p\n", (&category_list_head), *(&category_list_head), category_list_head);
+
   g_print("Add 1\n");
-  category_create(&category_head, '1', "ahaname", 0, NULL);
+  category_create(&category_head, '1', "a", 0, NULL);
 
   g_print("CLH: %p, CLH_D: %p, *CLH_D: %p, CH: %p\n", category_list_head, category_list_head->data, (*(Category **)category_list_head->data), category_head);
 
-  Category **testonly = (Category **)(category_list_head->data);
-  g_print("CLH: %c%s%d\n", (*testonly)->code, (*testonly)->name, (*testonly)->clothes_count);
-  g_print("CH: %c%s%d\n", category_head->code, category_head->name, category_head->clothes_count);
+  //Category **testonly = (Category **)malloc(sizeof(Category *));
+  //testonly = (Category **)(category_list_head->data);
+  //g_print("CLH: %c%s%d\n", (*testonly)->code, (*testonly)->name, (*testonly)->clothes_count);
+  //g_print("CH: %c%s%d\n", category_head->code, category_head->name, category_head->clothes_count);
   /**/
   g_print("Add 2\n");
-  category_create(&category_head, '2', "yooooo", 0, NULL);
+  category_create(&category_head, '2', "yoo", 0, NULL);
+  g_print("Add 3\n");
+  category_create(&category_head, '3', "!o", 0, NULL);
   
-  g_print("CLH: %p, CLH_D: %p, *CLH_D: %p, CH: %p\n", category_list_head, category_list_head->data, (*(Category **)category_list_head->data), category_head);
+  //g_print("CLH: %p, CLH_D: %p, *CLH_D: %p, CH: %p\n", category_list_head, category_list_head->data, (*(Category **)category_list_head->data), category_head);
 
-  g_print("CH: %c%s%d\n", category_head->code, category_head->name, category_head->clothes_count);
-  testonly = (Category **)(category_list_head->data);
-  g_print("CLH: %c%s%d\n", (*testonly)->code, (*testonly)->name, (*testonly)->clothes_count);
+  //g_print("CH: %c%s%d\n", category_head->code, category_head->name, category_head->clothes_count);
+  //testonly = (Category **)(category_list_head->data);
+  //g_print("CLH: %c%s%d\n", (*testonly)->code, (*testonly)->name, (*testonly)->clothes_count);
 
 
-  g_print("CLH->N: %p, CLH_D->N: %p, *CLH_D->N: %p, CH->N: %p\n", category_list_head->next, category_list_head->next->data, (*(Category **)category_list_head->next->data), category_head->next);
+  //g_print("CLH->N: %p, CLH_D->N: %p, *CLH_D->N: %p, CH->N: %p\n", category_list_head->next, category_list_head->next->data, (*(Category **)category_list_head->next->data), category_head->next);
 
-  g_print("CH->N: %c%s%d\n", category_head->next->code, category_head->next->name, category_head->next->clothes_count);
-  testonly = (Category **)(category_list_head->next->data);
-  g_print("CLH->N: %c%s%d\n", (*testonly)->code, (*testonly)->name, (*testonly)->clothes_count);
+  //g_print("CH->N: %c%s%d\n", category_head->next->code, category_head->next->name, category_head->next->clothes_count);
+  //testonly = (Category **)(category_list_head->next->data);
+  //g_print("CLH->N: %c%s%d\n", (*testonly)->code, (*testonly)->name, (*testonly)->clothes_count);
 
   g_print("Del CLH->N\n");
-  data_delete(&(category_list_head->next), TYPE_CATEGORY);
+  data_delete(&(category_list_head), TYPE_CATEGORY);
   g_print("CLH: %p, CLH_D: %p, *CLH_D: %p, CH: %p\n", category_list_head, category_list_head->data, (*(Category **)category_list_head->data), category_head);
 
-  testonly = (Category **)(category_list_head->data);
-  g_print("CLH: %c%s%d\n", (*testonly)->code, (*testonly)->name, (*testonly)->clothes_count);
+  //g_print("CLH: %c%s%d\n", (*testonly)->code, (*testonly)->name, (*testonly)->clothes_count);
+  g_print("((Category *)(*(Category **)(category_list_head->data))): %p, category_head: %p\n", ((Category *)(*(Category **)(category_list_head->data))), category_head);
   g_print("CH: %c%s%d\n", category_head->code, category_head->name, category_head->clothes_count);
+  g_print("CLH: %c%s\n", ((Category *)(*(Category **)(category_list_head->data)))->code, ((Category *)(*(Category **)(category_list_head->data)))->name);
+  g_print("CLH: %c%s%d\n", ((Category *)(*(Category **)(category_list_head->data)))->code, ((Category *)(*(Category **)(category_list_head->data)))->name, ((Category *)(*(Category **)(category_list_head->data)))->clothes_count);
 }
 
 void file_open(){
@@ -432,6 +497,7 @@ void file_open(){
     error_out("Open failed.");
   }
   free(filename);
+  filename = NULL;
 }
 
 void file_save(){
@@ -451,6 +517,7 @@ void file_save(){
       }
     }
     free(filename);
+    filename = NULL;
   }
 
   if(save_error){
@@ -471,6 +538,7 @@ void file_save_as(){
   }
 
   free(filename);
+  filename = NULL;
 }
 
 void file_quit(){
@@ -482,7 +550,7 @@ void file_quit(){
 
 /* Other Function */
 void other_about(){
-  GtkWidget *about_window;
+  GtkWidget *about_window = NULL;
   about_window = gtk_about_dialog_new();
   gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about_window), program_name);
   gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(about_window), version);

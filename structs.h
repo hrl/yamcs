@@ -6,7 +6,7 @@
 /* 1.Container */
 /* 2.Category, Clothes, or Order */
 /* The second struct are used to convert data between mem and disk. */
-/* The first struct are used to storage the **unique** pointer of the second struct, */
+/* The first struct are used to storage the **unique** pointer of the second struct. */
 /* --------------------------------------------------------------------------------- */
 
 /* data: Category **, Clothes **, or Order **. */
