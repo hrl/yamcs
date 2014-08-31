@@ -7,16 +7,23 @@
 /* Helper function */
 void error_out(char *error);
 void build_UI();
-void insert_into_container(Container **head, void *data);
-int category_edit(Container **self, void *data);
-int clothes_edit(Container **self, void *data);
-int order_edit(Container **self, void *data);
+//void insert_into_container(Container **head, void *data);
 
 int category_create(Category **head ,char code, char name[], int clothes_count, Clothes *clothes);
 int clothes_create(Clothes **head, char name[], char type, float price, int order_count, float mark, Category *category, Order *order);
 int order_create(Order **head, char date[], char name[], int mark, Clothes *clothes);
 
-int data_delete(Container **self, int type);
+int data_delete();
+int category_delete(void *self);
+int clothes_delete(void *self);
+int order_delete(void *self);
+
+Category **category_search(char code);
+Clothes **clothes_search(char name[30]);
+
+void clean_column();
+char *string(char code);
+
 /* End Helper function */
 
 /* Basic I/O */
@@ -40,6 +47,7 @@ void maintenance_add_order();
 /* End Maintenance */
 
 /* Query */
+void query_category_all();
 /* End Query */
 
 /* Statistics */

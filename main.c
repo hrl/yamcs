@@ -21,7 +21,7 @@ void tree_selection_changed(GtkTreeSelection *selection, gpointer data){
   }
 }
 
-void query_category_all(GtkWidget *z, GtkTreeView *treeview){
+void query_category_2all(GtkWidget *z, GtkTreeView *treeview){
   GtkTreeStore *store = gtk_tree_store_new(
     COLUMNS,
     G_TYPE_STRING,

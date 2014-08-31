@@ -3,8 +3,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <gtk/gtk.h>
 #include <unistd.h>
+#include <stdarg.h>
+#include <gtk/gtk.h>
 
 #include "structs.h"
 #include "defines.h"
@@ -16,10 +17,13 @@ void error_out(char *error){
 }
 
 void clean_var(){
+  data_delete();
   category_head = NULL;
+  /*
   category_list_head = NULL;
   clothes_list_head = NULL;
   order_list_head = NULL;
+  */
 }
 
 void build_UI(){
@@ -84,7 +88,7 @@ void build_UI(){
   g_signal_connect(G_OBJECT(menuitem_file_quit), "activate", G_CALLBACK(file_quit), NULL);
   /* -Query menu */
   /* --Query category menu */
-  //g_signal_connect(G_OBJECT(menuitem_query_category_all), "activate", G_CALLBACK(query_category_all), treeview);
+  g_signal_connect(G_OBJECT(menuitem_query_category_all), "activate", G_CALLBACK(query_category_all), NULL);
   /* --Query clothes menu */
   /* --Query order menu */
   /* -Maintenance menu */
@@ -103,50 +107,7 @@ void build_UI(){
   gtk_widget_show_all(window);
 }
 
-void insert_into_container(Container **head, void *data){
-  Container *temp = NULL;
-  temp = (Container *)malloc(sizeof(Container));
-  temp->data = data;
-  if(*head){
-    temp->next = *head;
-  } else {
-    temp->next = NULL;
-  }
-  *head = temp;
-}
 
-int data_delete(Container **self, int type){
-  /* delete target data */
-  // *((*self)->data): target struct pointer
-  if(type == TYPE_CATEGORY){
-    Category **target = (Category **)((*self)->data);
-    Category *needfree = *target;
-    *target = needfree->next;
-    free(needfree);
-    needfree = NULL;
-  } else if(type == TYPE_CLOTHES){
-    Clothes **target = (Clothes **)((*self)->data);
-    Clothes *needfree = *target;
-    *target = needfree->next;
-    free(needfree);
-    needfree = NULL;
-  } else if(type == TYPE_ORDER){
-    Order **target = (Order **)((*self)->data);
-    Order *needfree = *target;
-    *target = needfree->next;
-    free(needfree);
-    needfree = NULL;
-  } else {
-    return 0;
-  }
-
-  /* delete container */
-  Container *needfree = *self;
-  *self = needfree->next;
-  free(needfree);
-  needfree = NULL;
-  return 1;
-}
 
 int category_create(Category **head ,char code, char name[], int clothes_count, Clothes *clothes){
   Category *tmp = NULL;
@@ -158,11 +119,13 @@ int category_create(Category **head ,char code, char name[], int clothes_count, 
 
 
   tmp->next = *head;
+  /* !Container
   if(*head){
     insert_into_container(&category_list_head, &(tmp->next));
   } else {
     insert_into_container(&category_list_head, head);
   }
+  */
   *head = tmp;
 
   return 1;
@@ -180,15 +143,17 @@ int clothes_create(Clothes **head, char name[], char type, float price, int orde
   tmp->order = order;
 
   tmp->next = *head;
+  /* !Container
   if(*head){
     insert_into_container(&clothes_list_head, (void *)&(tmp->next));
   } else {
     insert_into_container(&clothes_list_head, (void *)head);
   }
+  */
   *head = tmp;
 
   /* edit the category stats */
-  //category->clothes_count = category->clothes_count + 1;
+  category->clothes_count = category->clothes_count + 1;
 
   return 1;
 }
@@ -203,11 +168,13 @@ int order_create(Order **head, char date[], char name[], int mark, Clothes *clot
   tmp->category = clothes->category;
 
   tmp->next = *head;
+  /* !Container
   if(*head){
     insert_into_container(&order_list_head, (void *)&(tmp->next));
   } else {
     insert_into_container(&order_list_head, (void *)head);
   }
+  */
   *head = tmp;
 
   /* edit the clothes stats */
@@ -215,6 +182,170 @@ int order_create(Order **head, char date[], char name[], int mark, Clothes *clot
   tmp->clothes->order_count += 1;
 
   return 1;
+}
+
+/* !Container
+void insert_into_container(Container **head, void *data){
+  Container *temp = NULL;
+  temp = (Container *)malloc(sizeof(Container));
+  temp->data = data;
+  if(*head){
+    temp->next = *head;
+  } else {
+    temp->next = NULL;
+  }
+  *head = temp;
+}
+*/
+
+/* !Container
+int data_delete(Container **self, int type){
+*/
+int data_delete(){
+  /* delete target data */
+  // self: target struct pointer
+
+  Category **category_itor = &(category_head);
+  while(*category_itor){
+    category_delete(category_itor);
+  }
+
+  return 1;
+  /* delete container */
+  /* !Container
+  Container *needfree = *self;
+  *self = needfree->next;
+  free(needfree);
+  needfree = NULL;
+  return 1;
+  */
+}
+
+int category_delete(void *self){
+  /* init */
+  Category **target = (Category **)self;
+  Category *needfreeca = *target;
+
+  /* delete clothes */
+  Clothes **clothes_itor = &(needfreeca->clothes);
+  while(*clothes_itor){
+    clothes_delete(clothes_itor);
+  }
+
+  /* delete self */
+  *target = needfreeca->next;
+  free(needfreeca);
+  needfreeca = NULL;
+
+  return 1;
+}
+
+int clothes_delete(void *self){
+  /* init */
+  Clothes **target = (Clothes **)self;
+  Clothes *needfreecl = *target;
+
+  /* delete clothes */
+  Order **order_itor = &(needfreecl->order);
+  while(*order_itor){
+    order_delete(order_itor);
+  }
+
+  /* delete self */
+  *target = needfreecl->next;
+  free(needfreecl);
+  needfreecl = NULL;
+
+  return 1;
+}
+
+int order_delete(void *self){
+  /* init */
+  Order **target = (Order **)self;
+  Order *needfreeor = *target;
+
+  /* delete self */
+  *target = needfreeor->next;
+  free(needfreeor);
+  needfreeor = NULL;
+
+  return 1;
+}
+
+Category **category_search(char code){
+  Category **category_itor = &category_head;
+  while(*category_itor){
+    if((*category_itor)->code == code){
+      return category_itor;
+    }
+    category_itor = &((*category_itor)->next);
+  }
+
+  return NULL;
+}
+
+Clothes **clothes_search(char name[30]){
+  Category **category_itor = &category_head;
+  while(*category_itor){
+    Clothes **clothes_itor = &((*category_itor)->clothes);
+    while(*clothes_itor){
+      if(!strcmp((*clothes_itor)->name, name)){
+        return clothes_itor;
+      }
+      clothes_itor = &((*clothes_itor)->next);
+    }
+    category_itor = &((*category_itor)->next);
+  }
+  
+  return NULL;
+}
+
+void data_out(){
+  Category *category_itor = category_head;
+  while(category_itor){
+    g_print("--------------------------\n");
+    g_print("Category:\n code: %c\n name: %s\n clothes_count: %d \n", category_itor->code, category_itor->name, category_itor->clothes_count);
+    g_print("--------------------------\n");
+
+    Clothes *clothes_itor = category_itor->clothes;
+    while(clothes_itor){
+      g_print("--------------------------\n");
+      g_print("Clothes:\n category_name: %s\n name: %s\n type: %c\n price: %f\n mark: %f\n order_count: %d\n",
+              clothes_itor->category->name, clothes_itor->name, clothes_itor->type, clothes_itor->price, clothes_itor->mark, clothes_itor->order_count);
+      g_print("--------------------------\n");
+
+      Order *order_itor = clothes_itor->order;
+      while(order_itor){
+        g_print("--------------------------\n");
+        g_print("Order:\n date: %s\n name: %s\n mark: %d\n",
+                order_itor->date, order_itor->name, order_itor->mark);
+        g_print("--------------------------\n");
+        order_itor = order_itor->next;
+      }
+      clothes_itor = clothes_itor->next;
+    }
+    category_itor = category_itor->next;
+  }
+}
+
+
+void clean_column(){
+  int columns;
+  GtkTreeViewColumn *column;
+  columns = gtk_tree_view_get_n_columns(treeview);
+
+  while(columns){
+    column = gtk_tree_view_get_column(treeview, 0);
+    gtk_tree_view_remove_column(treeview, column);
+    columns--;
+  }  
+}
+
+char *string(char code){
+  char *str = (char *)malloc(2);
+  str[0] = code;
+  str[1] = '\0';
+  return str;
 }
 /* End Helper function */
 
@@ -288,6 +419,7 @@ short load_file(){
           break;
         }
         count++;
+        load_category_tail->__delete = category_delete;
 
           /* load clothes */
           if(load_category_tail->clothes_count){
@@ -302,6 +434,8 @@ short load_file(){
               /* load current clothes */
               fread(load_clothes_tail, sizeof(Clothes), 1, file);
               load_clothes_tail->category = load_category_tail;
+              load_clothes_tail->__delete = clothes_delete;
+
 
                 /* load order */
                 if(load_clothes_tail->order_count){
@@ -317,12 +451,13 @@ short load_file(){
                     fread(load_order_tail, sizeof(Order), 1, file);
                     load_order_tail->clothes = load_clothes_tail;
                     load_order_tail->category = load_category_tail;
+                    load_order_tail->__delete = order_delete;
                     /* end load current order */
                     /* prepare for next order */
                     order_processed++;
                     load_order_temp = load_order_tail;
                     load_order_tail->next = (Order *)malloc(sizeof(Order));
-                    insert_into_container(&order_list_head, (void *)&(load_order_tail->next));
+                    //insert_into_container(&order_list_head, (void *)&(load_order_tail->next));
                     load_order_tail = load_order_tail->next;
                   } while(order_processed < load_clothes_tail->order_count);
                   load_order_temp->next = NULL;
@@ -330,7 +465,7 @@ short load_file(){
                   load_order_tail = NULL;
 
                   load_clothes_tail->order = load_order_head;
-                  order_list_head->data = (void *)&(load_clothes_tail->order);
+                  //order_list_head->data = (void *)&(load_clothes_tail->order);
                 } else {
                   load_clothes_tail->order = NULL;
                 }
@@ -341,7 +476,7 @@ short load_file(){
               clothes_processed++;
               load_clothes_temp = load_clothes_tail;
               load_clothes_tail->next = (Clothes *)malloc(sizeof(Clothes));
-              insert_into_container(&clothes_list_head, (void *)&(load_clothes_tail->next));
+              //insert_into_container(&clothes_list_head, (void *)&(load_clothes_tail->next));
               load_clothes_tail = load_clothes_tail->next;
             } while(clothes_processed < load_category_tail->clothes_count);
             load_clothes_temp->next = NULL;
@@ -349,7 +484,7 @@ short load_file(){
             load_clothes_tail = NULL;
 
             load_category_tail->clothes = load_clothes_head;
-            clothes_list_head->data = (void *)&(load_category_tail->clothes);
+            //clothes_list_head->data = (void *)&(load_category_tail->clothes);
           } else {
             load_category_tail->clothes = NULL;
           }
@@ -359,7 +494,7 @@ short load_file(){
         /* prepare for next category */
         load_category_temp = load_category_tail;
         load_category_tail->next = (Category *)malloc(sizeof(Category));
-        insert_into_container(&category_list_head, (void *)&(load_category_tail->next));
+        //insert_into_container(&category_list_head, (void *)&(load_category_tail->next));
         load_category_tail = load_category_tail->next;
       } while(!feof(file));
       free(load_category_tail);
@@ -368,7 +503,7 @@ short load_file(){
       if(count){
         load_category_temp->next = NULL;
         category_head = load_category_head;
-        category_list_head->data = (void *)&(category_head);
+        //category_list_head->data = (void *)&(category_head);
       } else {
         category_head = NULL;
       }
@@ -434,46 +569,87 @@ void file_new(){
   clean_var();
 
   /* for test */
-
-  g_print("%p, %p, %p\n", (&category_list_head), *(&category_list_head), category_list_head);
-
-  g_print("Add 1\n");
+  g_print("Add C1\n");
   category_create(&category_head, '1', "a", 0, NULL);
-
-  g_print("CLH: %p, CLH_D: %p, *CLH_D: %p, CH: %p\n", category_list_head, category_list_head->data, (*(Category **)category_list_head->data), category_head);
-
-  //Category **testonly = (Category **)malloc(sizeof(Category *));
-  //testonly = (Category **)(category_list_head->data);
-  //g_print("CLH: %c%s%d\n", (*testonly)->code, (*testonly)->name, (*testonly)->clothes_count);
-  //g_print("CH: %c%s%d\n", category_head->code, category_head->name, category_head->clothes_count);
-  /**/
-  g_print("Add 2\n");
+  data_out();
+  g_print("Add CL1\n");
+  clothes_create(&(category_head->clothes), "clothes 1", '1', 233, 0, 0, category_head, NULL);
+  data_out();
+  g_print("Add O1\n");
+  order_create(&(category_head->clothes->order), "23333333", "熊猫", 3, category_head->clothes);
+  data_out();
+  g_print("Add O2\n");
+  order_create(&(category_head->clothes->order), "33333333", "熊猫2", 5, category_head->clothes);
+  data_out();
+  g_print("Add O3\n");
+  order_create(&(category_head->clothes->order), "13333333", "熊猫3", 4, category_head->clothes);
+  data_out();
+  g_print("Add CL2\n");
+  clothes_create(&(category_head->clothes), "clothes 2", '1', 233, 0, 0, category_head, NULL);
+  data_out();
+  g_print("Add C2\n");
   category_create(&category_head, '2', "yoo", 0, NULL);
-  g_print("Add 3\n");
+  data_out();
+  g_print("Add C3\n");
   category_create(&category_head, '3', "!o", 0, NULL);
+  data_out();
+
+
+  g_print("Del O1\n");
+  order_delete(&(category_head->next->next->clothes->next->order->next->next));
+  data_out();
+
+  g_print("Del CL1\n");
+  clothes_delete(&(category_head->next->next->clothes->next));
+  data_out();
+
+  g_print("Del C1\n");
+  category_delete(&(category_head->next->next));
+  data_out();
+
+  g_print("Del All\n");
+  data_delete();
+  data_out();
+
+
+  g_print("Add C1\n");
+  category_create(&category_head, '1', "a", 0, NULL);
+  g_print("Add CL1\n");
+  clothes_create(&(category_head->clothes), "喵", '1', 233, 0, 0, category_head, NULL);
+  g_print("Add O1\n");
+  order_create(&(category_head->clothes->order), "23333333", "熊猫", 3, category_head->clothes);
+  g_print("Add O2\n");
+  order_create(&(category_head->clothes->order), "33333333", "熊猫2", 5, category_head->clothes);
+  g_print("Add O3\n");
+  order_create(&(category_head->clothes->order), "13333333", "熊猫3", 4, category_head->clothes);
+  g_print("Add CL2\n");
+  clothes_create(&(category_head->clothes), "clothes 2", '1', 233, 0, 0, category_head, NULL);
+  g_print("Add CL3\n");
+  clothes_create(&(category_head->clothes), "clothes 3", '1', 233, 0, 0, category_head, NULL);
+  g_print("Add C2\n");
+  category_create(&category_head, '2', "yoo", 0, NULL);
+  g_print("Add C3\n");
+  category_create(&category_head, '3', "!o", 0, NULL);
+  //data_out();
+
+  Category *result_category = *category_search('3');
+  Clothes *result_clothes = *clothes_search("喵");
+  //Clothes *result_clothes = *clothes_search("clothes 2");
+  g_print("Category:\n code: %c\n", (result_category)->code);
+  g_print("Clothes:\n name: %s\n", (result_clothes)->name);
+  data_out();
+
   
-  //g_print("CLH: %p, CLH_D: %p, *CLH_D: %p, CH: %p\n", category_list_head, category_list_head->data, (*(Category **)category_list_head->data), category_head);
+  result_category = *category_search('1');
 
-  //g_print("CH: %c%s%d\n", category_head->code, category_head->name, category_head->clothes_count);
-  //testonly = (Category **)(category_list_head->data);
-  //g_print("CLH: %c%s%d\n", (*testonly)->code, (*testonly)->name, (*testonly)->clothes_count);
-
-
-  //g_print("CLH->N: %p, CLH_D->N: %p, *CLH_D->N: %p, CH->N: %p\n", category_list_head->next, category_list_head->next->data, (*(Category **)category_list_head->next->data), category_head->next);
-
-  //g_print("CH->N: %c%s%d\n", category_head->next->code, category_head->next->name, category_head->next->clothes_count);
-  //testonly = (Category **)(category_list_head->next->data);
-  //g_print("CLH->N: %c%s%d\n", (*testonly)->code, (*testonly)->name, (*testonly)->clothes_count);
-
-  g_print("Del CLH->N\n");
-  data_delete(&(category_list_head), TYPE_CATEGORY);
-  g_print("CLH: %p, CLH_D: %p, *CLH_D: %p, CH: %p\n", category_list_head, category_list_head->data, (*(Category **)category_list_head->data), category_head);
-
-  //g_print("CLH: %c%s%d\n", (*testonly)->code, (*testonly)->name, (*testonly)->clothes_count);
-  g_print("((Category *)(*(Category **)(category_list_head->data))): %p, category_head: %p\n", ((Category *)(*(Category **)(category_list_head->data))), category_head);
-  g_print("CH: %c%s%d\n", category_head->code, category_head->name, category_head->clothes_count);
-  g_print("CLH: %c%s\n", ((Category *)(*(Category **)(category_list_head->data)))->code, ((Category *)(*(Category **)(category_list_head->data)))->name);
-  g_print("CLH: %c%s%d\n", ((Category *)(*(Category **)(category_list_head->data)))->code, ((Category *)(*(Category **)(category_list_head->data)))->name, ((Category *)(*(Category **)(category_list_head->data)))->clothes_count);
+  /*
+  g_print("Del C3\n");
+  data_delete(&category_head, TYPE_CATEGORY);
+  data_out();
+  g_print("Del C1\n");
+  data_delete(&(category_head->next), TYPE_CATEGORY);
+  data_out();
+  */
 }
 
 void file_open(){
@@ -502,7 +678,7 @@ void file_open(){
 
 void file_save(){
   error_out("file_save called.");
-  g_print("CH: %c%s%d\n", category_head->code, category_head->name, category_head->clothes_count);
+  data_out();
   short save_error;
   if(file){
     if(!save_file()){
@@ -547,6 +723,64 @@ void file_quit(){
   gtk_main_quit();
 }
 /* End Basic I/O */
+
+
+
+/* Query */
+
+void query_category_all(){
+  clean_column();
+
+  GtkListStore *liststore;
+  GtkTreeIter iter;
+
+  liststore = gtk_list_store_new(
+    CATEGORY_ALL_COLUMNS,
+    G_TYPE_STRING,
+    G_TYPE_STRING,
+    G_TYPE_INT,
+    G_TYPE_POINTER);
+
+  Category **category_itor = &category_head;
+  while(*category_itor){
+    gtk_list_store_append(liststore, &iter);
+    gtk_list_store_set(
+    liststore, &iter,
+    CATEGORY_ALL_CODE, string((*category_itor)->code),
+    CATEGORY_ALL_NAME, (*category_itor)->name,
+    CATEGORY_ALL_CLOTHES_COUNT, (*category_itor)->clothes_count,
+    CATEGORY_ALL_POINTER, category_itor,
+    -1);
+
+    category_itor = &((*category_itor)->next);
+  }
+
+  gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(liststore));
+
+  GtkCellRenderer *renderer;
+  GtkTreeViewColumn *column;
+  renderer = gtk_cell_renderer_text_new();
+  column = gtk_tree_view_column_new_with_attributes(
+    "分类编码",
+    renderer,
+    "text", CATEGORY_ALL_CODE,
+    NULL);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+  column = gtk_tree_view_column_new_with_attributes(
+    "分类名称",
+    renderer,
+    "text", CATEGORY_ALL_NAME,
+    NULL);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+  column = gtk_tree_view_column_new_with_attributes(
+    "服装数",
+    renderer,
+    "text", CATEGORY_ALL_CLOTHES_COUNT,
+    NULL);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+
+}
+/* End Query */
 
 /* Other Function */
 void other_about(){
