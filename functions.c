@@ -28,7 +28,7 @@ void clean_var(){
 
 void call_last_func(){
   if(last_func){
-    (*last_func)();
+    (*last_func)(NULL, CALL_TYPE_REDO);
   }
 }
 
@@ -374,27 +374,25 @@ void data_out(){
   while(category_itor){
     g_print("--------------------------\n");
     g_print("Category:\n code: %c\n name: %s\n clothes_count: %d \n", category_itor->code, category_itor->name, category_itor->clothes_count);
-    g_print("--------------------------\n");
 
     Clothes *clothes_itor = category_itor->clothes;
     while(clothes_itor){
       g_print("--------------------------\n");
       g_print("Clothes:\n category_name: %s\n name: %s\n type: %c\n price: %f\n mark: %f\n order_count: %d\n",
               clothes_itor->category->name, clothes_itor->name, clothes_itor->type, clothes_itor->price, clothes_itor->mark, clothes_itor->order_count);
-      g_print("--------------------------\n");
 
       Order *order_itor = clothes_itor->order;
       while(order_itor){
         g_print("--------------------------\n");
         g_print("Order:\n date: %s\n name: %s\n mark: %d\n",
                 order_itor->date, order_itor->name, order_itor->mark);
-        g_print("--------------------------\n");
         order_itor = order_itor->next;
       }
       clothes_itor = clothes_itor->next;
     }
     category_itor = category_itor->next;
   }
+  g_print("--------------------------\n");
 }
 
 void clean_column(){
@@ -795,7 +793,7 @@ void file_quit(){
 
 /* Query */
 
-void query_category_all(){
+void query_category_all(void *pass, int call_type){
   error_out("query_category_all called");
   last_func = &query_category_all;
   clean_column();
@@ -843,6 +841,64 @@ void query_category_all(){
   }
 }
 
+void query_clothes_all(void *pass, int call_type){
+  error_out("query_clothes_all called");
+  last_func = &query_clothes_all;
+  clean_column();
+
+  GtkListStore *liststore;
+  GtkTreeIter iter;
+
+  liststore = gtk_list_store_new(
+    CLOTHES_ALL_COLUMNS,
+    G_TYPE_POINTER,
+    G_TYPE_INT,
+    G_TYPE_STRING, //CLOTHES_ALL_CODE
+    G_TYPE_STRING, //CLOTHES_ALL_NAME
+    G_TYPE_STRING, //CLOTHES_ALL_CTYPE
+    G_TYPE_FLOAT,  //CLOTHES_ALL_PRICE
+    G_TYPE_FLOAT,  //CLOTHES_ALL_MARK
+    G_TYPE_INT     //CLOTHES_ALL_ORDER_COUNT
+    );
+
+  Category **category_itor = &category_head;
+  while(*category_itor){
+    Clothes **clothes_itor = &((*category_itor)->clothes);
+    while(*clothes_itor){
+      gtk_list_store_append(liststore, &iter);
+      gtk_list_store_set(
+      liststore, &iter,
+      CLOTHES_ALL_POINTER, clothes_itor,
+      CLOTHES_ALL_TYPE, TYPE_CLOTHES,
+      CLOTHES_ALL_CODE, string((*category_itor)->code),
+      CLOTHES_ALL_NAME, (*category_itor)->name,
+      CLOTHES_ALL_CTYPE, (*category_itor)->clothes_count,
+      CLOTHES_ALL_PRICE, (*category_itor)->clothes_count,
+      CLOTHES_ALL_MARK, (*category_itor)->clothes_count,
+      CLOTHES_ALL_ORDER_COUNT, (*category_itor)->clothes_count,
+      -1);
+      clothes_itor&((*clothes_itor)->next);
+    }
+    category_itor = &((*category_itor)->next);
+  }
+
+  gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(liststore));
+
+  GtkCellRenderer *renderer;
+  GtkTreeViewColumn *column;
+  renderer = gtk_cell_renderer_text_new();
+  char column_title[3][20] = {"分类编码", "分类名称", "服装数"};
+  int column_line[3] = {CATEGORY_ALL_CODE, CATEGORY_ALL_NAME, CATEGORY_ALL_CLOTHES_COUNT};
+  int i = 0;
+  for(i=0; i<3; i++){
+    column = gtk_tree_view_column_new_with_attributes(
+      column_title[i],
+      renderer,
+      "text", column_line[i],
+      NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+  }
+}
 
 /* End Query */
 

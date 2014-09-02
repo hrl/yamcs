@@ -58,7 +58,7 @@ void maintenance_delete();
 /* End Maintenance */
 
 /* Query */
-void query_category_all();
+void query_category_all(void *pass, int call_type);
 /* End Query */
 
 /* Statistics */

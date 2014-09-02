@@ -12,7 +12,7 @@ FILE *file = NULL;
 short updated; /*  */
 GtkWindow *window = NULL;
 GtkTreeView *treeview = NULL;
-void (*last_func)();
+void (*last_func)(void *pass, int call_type);
 
 Category *category_head;  /* Main head of the linked list */
 
@@ -39,6 +39,23 @@ enum {
 	CATEGORY_ALL_NAME,
 	CATEGORY_ALL_CLOTHES_COUNT,
 	CATEGORY_ALL_COLUMNS
+};
+
+enum {
+	CLOTHES_ALL_POINTER,
+	CLOTHES_ALL_TYPE,
+	CLOTHES_ALL_CODE,
+	CLOTHES_ALL_NAME,
+	CLOTHES_ALL_CTYPE,
+	CLOTHES_ALL_PRICE,
+	CLOTHES_ALL_MARK,
+	CLOTHES_ALL_ORDER_COUNT,
+	CLOTHES_ALL_COLUMNS
+};
+
+enum {
+	CALL_TYPE_NORMAL,
+	CALL_TYPE_REDO,
 };
 
 #endif /* defines.h */
