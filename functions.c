@@ -26,6 +26,12 @@ void clean_var(){
   */
 }
 
+void call_last_func(){
+  if(last_func){
+    (*last_func)();
+  }
+}
+
 void build_UI(){
   GtkBuilder *builder = NULL;
   GError *error = NULL;
@@ -38,7 +44,7 @@ void build_UI(){
 
   /* Get objects */
   /* Main window */
-  window = GTK_WIDGET(gtk_builder_get_object(builder, "window"));
+  window = GTK_WINDOW(gtk_builder_get_object(builder, "window"));
   treeview = GTK_TREE_VIEW(gtk_builder_get_object(builder, "treeview"));
   /* -File menu */
   GtkWidget *menuitem_file_new = GTK_WIDGET(gtk_builder_get_object(builder, "menuitem_file_new"));
@@ -93,8 +99,11 @@ void build_UI(){
   /* --Query order menu */
   /* -Maintenance menu */
   /* --Maintenance add menu */
+  g_signal_connect(G_OBJECT(menuitem_maintenance_add_category), "activate", G_CALLBACK(maintenance_add_category), NULL);
   /* --Maintenance edit */
+  g_signal_connect(G_OBJECT(menuitem_maintenance_edit), "activate", G_CALLBACK(maintenance_edit), NULL);
   /* --Maintenance delete */
+  g_signal_connect(G_OBJECT(menuitem_maintenance_delete), "activate", G_CALLBACK(maintenance_delete), NULL);
   /* -Statistics menu */
   /* -Other menu */
   g_signal_connect(G_OBJECT(menuitem_other_about), "activate", G_CALLBACK(other_about), NULL);
@@ -104,10 +113,67 @@ void build_UI(){
   g_object_unref(G_OBJECT(builder));
 
   /* Show window */
-  gtk_widget_show_all(window);
+  gtk_widget_show_all(GTK_WIDGET(window));
 }
 
+GtkWidget **create_message_dialog(GtkWindow *fwindow, char *messages, GtkMessageType type, GtkWidget **dialog_response){
 
+  GtkButtonsType buttons;
+
+  switch(type){
+    case GTK_MESSAGE_ERROR: buttons = GTK_BUTTONS_OK; break;
+    case GTK_MESSAGE_WARNING: buttons = GTK_BUTTONS_OK; break;
+    case GTK_MESSAGE_QUESTION: buttons = GTK_BUTTONS_YES_NO; break;
+  }
+
+  GtkDialogFlags flags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
+
+  dialog_response[0] = GTK_WIDGET(gtk_message_dialog_new(
+    fwindow,
+    flags,
+    type,
+    buttons,
+    messages));
+
+  return dialog_response;
+}
+
+GtkWidget **create_edit_dialog(GtkWindow *fwindow, int rws, char argi[][30], GtkWidget **dialog_response){
+
+  GtkDialogFlags flags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
+
+  dialog_response[0] = GTK_WIDGET(gtk_dialog_new_with_buttons(
+    argi[0],
+    window,
+    flags,
+    "确定", GTK_RESPONSE_ACCEPT,
+    "取消", GTK_RESPONSE_REJECT,
+    NULL));
+
+  dialog_response[1] = gtk_grid_new();
+  gtk_grid_insert_column(GTK_GRID(dialog_response[1]), 0);
+  gtk_grid_insert_column(GTK_GRID(dialog_response[1]), 1);
+
+  int i;
+  for(i=0; i<rws; i++){
+    gtk_grid_insert_row(GTK_GRID(dialog_response[1]), i);
+  }
+
+  gtk_grid_set_row_spacing(GTK_GRID(dialog_response[1]), 5);
+  gtk_grid_set_column_spacing(GTK_GRID(dialog_response[1]), 5);
+
+  for(i=1; i<=rws; i++){
+    dialog_response[2*i] = gtk_label_new(argi[i]);
+    dialog_response[2*i+1] = gtk_entry_new();
+    gtk_entry_set_text(GTK_ENTRY(dialog_response[2*i+1]), argi[i+rws]);
+    gtk_grid_attach(GTK_GRID(dialog_response[1]), dialog_response[2*i], 0, i, 1, 1);
+    gtk_grid_attach(GTK_GRID(dialog_response[1]), dialog_response[2*i+1], 1, i, 1, 1);
+  }
+
+  gtk_container_add(GTK_CONTAINER(gtk_dialog_get_content_area(GTK_DIALOG(dialog_response[0]))), dialog_response[1]);
+
+  return dialog_response;
+}
 
 int category_create(Category **head ,char code, char name[], int clothes_count, Clothes *clothes){
   Category *tmp = NULL;
@@ -116,6 +182,7 @@ int category_create(Category **head ,char code, char name[], int clothes_count, 
   strcpy(tmp->name, name);
   tmp->clothes_count = clothes_count;
   tmp->clothes = clothes;
+  tmp->__delete = &category_delete;
 
 
   tmp->next = *head;
@@ -141,6 +208,7 @@ int clothes_create(Clothes **head, char name[], char type, float price, int orde
   tmp->mark = mark;
   tmp->category = category;
   tmp->order = order;
+  tmp->__delete = &clothes_delete;
 
   tmp->next = *head;
   /* !Container
@@ -166,6 +234,7 @@ int order_create(Order **head, char date[], char name[], int mark, Clothes *clot
   tmp->mark = mark;
   tmp->clothes = clothes;
   tmp->category = clothes->category;
+  tmp->__delete = &order_delete;
 
   tmp->next = *head;
   /* !Container
@@ -222,6 +291,7 @@ int data_delete(){
 }
 
 int category_delete(void *self){
+  error_out("category_delete called.");
   /* init */
   Category **target = (Category **)self;
   Category *needfreeca = *target;
@@ -328,7 +398,6 @@ void data_out(){
   }
 }
 
-
 void clean_column(){
   int columns;
   GtkTreeViewColumn *column;
@@ -351,7 +420,7 @@ char *string(char code){
 
 /* Basic I/O */
 
-short save_file(){
+int save_file(){
   error_out("save_file called.");
   if(!file){
     error_out("save_file: No file loaded.");
@@ -395,7 +464,7 @@ void open_file(char *filename){
   file = fopen(filename, "rb+");
 }
 
-short load_file(){
+int load_file(){
   error_out("load_file called.");
   if(!file){
     error_out("load_file: No file opened.");
@@ -419,7 +488,7 @@ short load_file(){
           break;
         }
         count++;
-        load_category_tail->__delete = category_delete;
+        load_category_tail->__delete = &category_delete;
 
           /* load clothes */
           if(load_category_tail->clothes_count){
@@ -434,7 +503,7 @@ short load_file(){
               /* load current clothes */
               fread(load_clothes_tail, sizeof(Clothes), 1, file);
               load_clothes_tail->category = load_category_tail;
-              load_clothes_tail->__delete = clothes_delete;
+              load_clothes_tail->__delete = &clothes_delete;
 
 
                 /* load order */
@@ -451,7 +520,7 @@ short load_file(){
                     fread(load_order_tail, sizeof(Order), 1, file);
                     load_order_tail->clothes = load_clothes_tail;
                     load_order_tail->category = load_category_tail;
-                    load_order_tail->__delete = order_delete;
+                    load_order_tail->__delete = &order_delete;
                     /* end load current order */
                     /* prepare for next order */
                     order_processed++;
@@ -729,6 +798,8 @@ void file_quit(){
 /* Query */
 
 void query_category_all(){
+  error_out("query_category_all called");
+  last_func = &query_category_all;
   clean_column();
 
   GtkListStore *liststore;
@@ -736,22 +807,23 @@ void query_category_all(){
 
   liststore = gtk_list_store_new(
     CATEGORY_ALL_COLUMNS,
-    G_TYPE_STRING,
-    G_TYPE_STRING,
+    G_TYPE_POINTER,
     G_TYPE_INT,
-    G_TYPE_POINTER);
+    G_TYPE_STRING,
+    G_TYPE_STRING,
+    G_TYPE_INT);
 
   Category **category_itor = &category_head;
   while(*category_itor){
     gtk_list_store_append(liststore, &iter);
     gtk_list_store_set(
     liststore, &iter,
+    CATEGORY_ALL_POINTER, category_itor,
+    CATEGORY_ALL_TYPE, TYPE_CATEGORY,
     CATEGORY_ALL_CODE, string((*category_itor)->code),
     CATEGORY_ALL_NAME, (*category_itor)->name,
     CATEGORY_ALL_CLOTHES_COUNT, (*category_itor)->clothes_count,
-    CATEGORY_ALL_POINTER, category_itor,
     -1);
-
     category_itor = &((*category_itor)->next);
   }
 
@@ -760,27 +832,218 @@ void query_category_all(){
   GtkCellRenderer *renderer;
   GtkTreeViewColumn *column;
   renderer = gtk_cell_renderer_text_new();
-  column = gtk_tree_view_column_new_with_attributes(
-    "分类编码",
-    renderer,
-    "text", CATEGORY_ALL_CODE,
-    NULL);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
-  column = gtk_tree_view_column_new_with_attributes(
-    "分类名称",
-    renderer,
-    "text", CATEGORY_ALL_NAME,
-    NULL);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
-  column = gtk_tree_view_column_new_with_attributes(
-    "服装数",
-    renderer,
-    "text", CATEGORY_ALL_CLOTHES_COUNT,
-    NULL);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+  char column_title[3][20] = {"分类编码", "分类名称", "服装数"};
+  int column_line[3] = {CATEGORY_ALL_CODE, CATEGORY_ALL_NAME, CATEGORY_ALL_CLOTHES_COUNT};
+  int i = 0;
+  for(i=0; i<3; i++){
+    column = gtk_tree_view_column_new_with_attributes(
+      column_title[i],
+      renderer,
+      "text", column_line[i],
+      NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+  }
+}
+
+
+/* End Query */
+
+/* Maintenance */
+
+int maintenance_category_dialog(void *self){
+  /* init */
+  
+  Category **category = (Category **)self;
+  /* tmp
+  char title[100];
+  if(!category){
+    strcpy(title, "添加服装分类");
+  } else {
+    strcpy(title, "修改服装分类");
+  }
+
+  GtkDialogFlags flags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
+
+  GtkWidget *category_dialog = GTK_WIDGET(gtk_dialog_new_with_buttons(
+    title,
+    window,
+    flags,
+    "确定", GTK_RESPONSE_ACCEPT,
+    "取消", GTK_RESPONSE_REJECT,
+    NULL));
+
+  GtkWidget *label_code = gtk_label_new("分类编码");
+  GtkWidget *entry_code = gtk_entry_new();
+  GtkWidget *label_name = gtk_label_new("分类名称");
+  GtkWidget *entry_name = gtk_entry_new();
+  if(category){
+    gtk_entry_set_text(GTK_ENTRY(entry_code), string((*category)->code));
+    gtk_entry_set_text(GTK_ENTRY(entry_name), (*category)->name);
+  }
+
+  GtkWidget *category_grid = gtk_grid_new();
+  gtk_grid_insert_column(GTK_GRID(category_grid), 0);
+  gtk_grid_insert_column(GTK_GRID(category_grid), 1);
+  gtk_grid_insert_row(GTK_GRID(category_grid), 0);
+  gtk_grid_insert_row(GTK_GRID(category_grid), 1);
+  gtk_grid_set_row_spacing(GTK_GRID(category_grid), 5);
+  gtk_grid_set_column_spacing(GTK_GRID(category_grid), 5);
+  gtk_grid_attach(GTK_GRID(category_grid), label_code, 0, 0, 1, 1);
+  gtk_grid_attach(GTK_GRID(category_grid), label_name, 0, 1, 1, 1);
+  gtk_grid_attach(GTK_GRID(category_grid), entry_code, 1, 0, 1, 1);
+  gtk_grid_attach(GTK_GRID(category_grid), entry_name, 1, 1, 1, 1);
+
+  gtk_container_add(GTK_CONTAINER(gtk_dialog_get_content_area(GTK_DIALOG(category_dialog))), category_grid);
+
+  gtk_widget_show_all(category_dialog);
+
+  */
+
+  //tmp2
+  int rws = 2;
+  char title[30];
+  char argi[rws*2+1][30];
+  if(!category){
+    strcpy(title, "添加服装分类");
+    strcpy(argi[3], "");
+    strcpy(argi[4], "");
+  } else {
+    strcpy(title, "修改服装分类");
+    strcpy(argi[3], string((*category)->code));
+    strcpy(argi[4], (*category)->name);
+  }
+  strcpy(argi[0], title);
+  strcpy(argi[1], "分类编码");
+  strcpy(argi[2], "分类名称");
+
+  GtkWidget **dialog_result = (GtkWidget **)malloc(sizeof(GtkWidget *)*(rws*2+2));
+  dialog_result = create_edit_dialog(window, rws, argi, dialog_result);
+  gtk_widget_show_all(dialog_result[0]);
+
+  char validate_message[30];
+  validate_message[0] = '\0';
+  int success = 0;
+  GtkEntryBuffer *buffer;
+  char code;
+  char name[10];
+  GtkWidget **warning_dialog = (GtkWidget **)malloc(sizeof(GtkWidget *)*(1));
+
+  while(gtk_dialog_run(GTK_DIALOG(dialog_result[0])) == GTK_RESPONSE_ACCEPT){
+    validate_message[0] = '\0';
+    //buffer = gtk_entry_get_buffer(GTK_ENTRY(entry_code));
+    buffer = gtk_entry_get_buffer(GTK_ENTRY(dialog_result[2*1+1]));
+    code = gtk_entry_buffer_get_text(buffer)[0];
+    //buffer = gtk_entry_get_buffer(GTK_ENTRY(entry_name));
+    buffer = gtk_entry_get_buffer(GTK_ENTRY(dialog_result[2*2+1]));
+    strcpy(name, gtk_entry_buffer_get_text(buffer));
+
+    /* error check */
+    if(!code || name[0] == '\0'){
+      strcpy(validate_message, "blank input");
+    }
+    if(validate_message[0] == '\0' && strlen(name) > 9){
+      strcpy(validate_message, "name too long");
+    }
+    if(validate_message[0] == '\0' && (code<'1' || code>'5')){
+      strcpy(validate_message, "invalid code(1-5)");
+    }
+    Category **search_result;
+    if(validate_message[0] == '\0' && ((search_result = category_search(code)) && ((!category) || (category && ((*category)->code != code))))){
+      strcpy(validate_message, "duplicate code");
+    }
+
+    if(validate_message[0] != '\0'){
+      warning_dialog = create_message_dialog(GTK_WINDOW(dialog_result[0]), validate_message, GTK_MESSAGE_WARNING, warning_dialog);
+      gtk_widget_show_all(warning_dialog[0]);
+      gtk_dialog_run(GTK_DIALOG(warning_dialog[0]));
+      gtk_widget_destroy(GTK_WIDGET(warning_dialog[0]));
+      continue;
+    }
+    /* end error check */
+
+    if(!category){
+      category_create(&category_head, code, name, 0, NULL);
+    } else {
+      (*category)->code = code;
+      strcpy((*category)->name, name);
+    }
+    success = 1;
+    break;
+  }
+
+  gtk_widget_destroy(GTK_WIDGET(dialog_result[0]));
+  
+  free(warning_dialog);
+  free(dialog_result);
+
+  return success;
+}
+
+void maintenance_add_category(){
+  if(maintenance_category_dialog(NULL)){
+    call_last_func();
+  } else {
+    error_out("Add category failed.");
+  }
+}
+
+void maintenance_add_clothes(){
 
 }
-/* End Query */
+
+void maintenance_add_order(){
+
+}
+
+void maintenance_delete(){
+  GtkTreeSelection *selection = gtk_tree_view_get_selection(treeview);
+  GtkTreeIter iter;
+  GtkTreeModel *model;
+  gpointer *self;
+
+  if(gtk_tree_selection_get_selected(selection, &model, &iter)){
+
+    GtkWidget **question_dialog = (GtkWidget **)malloc(sizeof(GtkWidget *)*(1));
+    question_dialog = create_message_dialog(window, "确定要删除吗?", GTK_MESSAGE_QUESTION, question_dialog);
+    gtk_widget_show_all(question_dialog[0]);
+
+    if(gtk_dialog_run(GTK_DIALOG(question_dialog[0])) == GTK_RESPONSE_YES){
+      gtk_tree_model_get(model, &iter, 0, &self, -1);
+      Call_func **target = (Call_func **)self;
+      (*((*target)->__delete))(self);
+    }
+    gtk_widget_destroy(GTK_WIDGET(question_dialog[0]));
+    free(question_dialog);
+  }
+
+  call_last_func();
+}
+
+void maintenance_edit(){
+  GtkTreeSelection *selection = gtk_tree_view_get_selection(treeview);
+  GtkTreeIter iter;
+  GtkTreeModel *model;
+  gpointer *self;
+  gint type;
+  int success;
+
+  if(gtk_tree_selection_get_selected(selection, &model, &iter)){
+    gtk_tree_model_get(model, &iter, 0, &self, -1);
+    gtk_tree_model_get(model, &iter, 1, &type, -1);
+
+    switch(type){
+      case TYPE_CATEGORY: success = maintenance_category_dialog(self);break;
+    }
+    if(success){
+      call_last_func();
+    } else {
+      error_out("Edit failed.");
+    }
+  } else {
+    error_out("Choose first.");
+  }
+}
+/* End Maintenance */
 
 /* Other Function */
 void other_about(){
@@ -788,6 +1051,7 @@ void other_about(){
   about_window = gtk_about_dialog_new();
   gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about_window), program_name);
   gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(about_window), version);
+  gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about_window), comments);
   gtk_about_dialog_set_authors (GTK_ABOUT_DIALOG(about_window), author);
   gtk_about_dialog_set_logo(GTK_ABOUT_DIALOG(about_window), NULL);
   gtk_about_dialog_set_license_type(GTK_ABOUT_DIALOG(about_window), GTK_LICENSE_GPL_2_0);

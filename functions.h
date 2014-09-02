@@ -6,8 +6,12 @@
 /* Builder Function */
 /* Helper function */
 void error_out(char *error);
+void clean_var();
+void call_last_func();
 void build_UI();
-//void insert_into_container(Container **head, void *data);
+
+GtkWidget **create_message_dialog(GtkWindow *fwindow, char *messages, GtkMessageType type, GtkWidget **dialog_response);
+GtkWidget **create_edit_dialog(GtkWindow *fwindow, int rws, char argi[][30], GtkWidget **dialog_response);
 
 int category_create(Category **head ,char code, char name[], int clothes_count, Clothes *clothes);
 int clothes_create(Clothes **head, char name[], char type, float price, int order_count, float mark, Category *category, Order *order);
@@ -21,15 +25,17 @@ int order_delete(void *self);
 Category **category_search(char code);
 Clothes **clothes_search(char name[30]);
 
+void data_out();
+
 void clean_column();
 char *string(char code);
 
 /* End Helper function */
 
 /* Basic I/O */
-short save_file();
+int save_file();
 void open_file(char *filename);
-short load_file();
+int load_file();
 void close_file(); /* clean data then you can change file */
 char *file_choose(int type);
 
@@ -41,9 +47,14 @@ void file_quit();
 /* End Basic I/O */
 
 /* Maintenance */
+int maintenance_category_dialog(void *self);
+
 void maintenance_add_category();
 void maintenance_add_clothes();
 void maintenance_add_order();
+
+void maintenance_edit();
+void maintenance_delete();
 /* End Maintenance */
 
 /* Query */

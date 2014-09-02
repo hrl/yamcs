@@ -5,12 +5,14 @@
 
 const char *version = "0.1";
 const char *program_name = "Yet Another Manager of a simple Clothing Shop";
+const char *comments = "Full of Bugs.\nIt Works.";
 const char *author[] = {"Ruilin Huang", NULL};
 
 FILE *file = NULL;
 short updated; /*  */
-GtkWidget *window = NULL;
+GtkWindow *window = NULL;
 GtkTreeView *treeview = NULL;
+void (*last_func)();
 
 Category *category_head;  /* Main head of the linked list */
 
@@ -31,10 +33,11 @@ enum {
 };
 
 enum {
+	CATEGORY_ALL_POINTER,
+	CATEGORY_ALL_TYPE,
 	CATEGORY_ALL_CODE,
 	CATEGORY_ALL_NAME,
 	CATEGORY_ALL_CLOTHES_COUNT,
-	CATEGORY_ALL_POINTER,
 	CATEGORY_ALL_COLUMNS
 };
 
