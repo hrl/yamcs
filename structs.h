@@ -57,7 +57,6 @@ struct order
 	int mark;
 	struct order *next;
 	struct clothes *clothes;
-	struct category *category;
 };
 
 typedef struct category Category;

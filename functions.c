@@ -233,7 +233,6 @@ int order_create(Order **head, char date[], char name[], int mark, Clothes *clot
   strcpy(tmp->name, name);
   tmp->mark = mark;
   tmp->clothes = clothes;
-  tmp->category = clothes->category;
   tmp->__delete = &order_delete;
 
   tmp->next = *head;
@@ -519,7 +518,6 @@ int load_file(){
                     /* load current order */
                     fread(load_order_tail, sizeof(Order), 1, file);
                     load_order_tail->clothes = load_clothes_tail;
-                    load_order_tail->category = load_category_tail;
                     load_order_tail->__delete = &order_delete;
                     /* end load current order */
                     /* prepare for next order */
