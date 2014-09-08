@@ -5,13 +5,13 @@
 
 /* Builder Function */
 /* Helper function */
-void error_out(char *error);
 void clean_var();
 void call_last_func();
 void build_UI();
 
 GtkWidget **create_message_dialog(GtkWindow *fwindow, char *messages, GtkMessageType type, GtkWidget **dialog_response);
 GtkWidget **create_edit_dialog(GtkWindow *fwindow, int rws, char argi[][100], GtkWidget **dialog_response);
+void save_confirmation();
 
 int category_create(Category **head ,char code, char name[], int clothes_count, Clothes *clothes);
 int clothes_create(Clothes **head, char name[], char type, float price, int order_count, float mark, Category *category, Order *order);

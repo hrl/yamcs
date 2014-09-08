@@ -19,11 +19,6 @@ void error_out(char *error){
 void clean_var(){
   data_delete();
   category_head = NULL;
-  /*
-  category_list_head = NULL;
-  clothes_list_head = NULL;
-  order_list_head = NULL;
-  */
 }
 
 void call_last_func(){
@@ -50,7 +45,6 @@ void build_UI(){
   GtkWidget *menuitem_file_new = GTK_WIDGET(gtk_builder_get_object(builder, "menuitem_file_new"));
   GtkWidget *menuitem_file_open = GTK_WIDGET(gtk_builder_get_object(builder, "menuitem_file_open"));
   GtkWidget *menuitem_file_save = GTK_WIDGET(gtk_builder_get_object(builder, "menuitem_file_save"));
-  //GtkWidget *menuitem_file_save_as = GTK_WIDGET(gtk_builder_get_object(builder, "menuitem_file_save_as"));
   GtkWidget *menuitem_file_quit = GTK_WIDGET(gtk_builder_get_object(builder, "menuitem_file_quit"));
   /* -Query menu */
   /* --Query category menu */
@@ -90,7 +84,6 @@ void build_UI(){
   g_signal_connect(G_OBJECT(menuitem_file_new), "activate", G_CALLBACK(file_new), NULL);
   g_signal_connect(G_OBJECT(menuitem_file_open), "activate", G_CALLBACK(file_open), NULL);
   g_signal_connect(G_OBJECT(menuitem_file_save), "activate", G_CALLBACK(file_save), NULL);
-  //g_signal_connect(G_OBJECT(menuitem_file_save_as), "activate", G_CALLBACK(file_save_as), NULL);
   g_signal_connect(G_OBJECT(menuitem_file_quit), "activate", G_CALLBACK(file_quit), NULL);
   /* -Query menu */
   /* --Query category menu */
@@ -190,6 +183,21 @@ GtkWidget **create_edit_dialog(GtkWindow *fwindow, int rws, char argi[][100], Gt
   return dialog_response;
 }
 
+void save_confirmation(){
+  if(!updated){
+
+    GtkWidget **question_dialog = (GtkWidget **)malloc(sizeof(GtkWidget *)*(1));
+    question_dialog = create_message_dialog(window, "更改尚未保存，要保存吗?", GTK_MESSAGE_QUESTION, question_dialog);
+    gtk_widget_show_all(question_dialog[0]);
+
+    if(gtk_dialog_run(GTK_DIALOG(question_dialog[0])) == GTK_RESPONSE_YES){
+      save_file();
+    }
+    gtk_widget_destroy(GTK_WIDGET(question_dialog[0]));
+    free(question_dialog);
+  }
+}
+
 int category_create(Category **head ,char code, char name[], int clothes_count, Clothes *clothes){
   Category *tmp = NULL;
   tmp = (Category *)malloc(sizeof(Category));
@@ -201,13 +209,6 @@ int category_create(Category **head ,char code, char name[], int clothes_count, 
 
 
   tmp->next = *head;
-  /* !Container
-  if(*head){
-    insert_into_container(&category_list_head, &(tmp->next));
-  } else {
-    insert_into_container(&category_list_head, head);
-  }
-  */
   *head = tmp;
 
   return 1;
@@ -226,13 +227,6 @@ int clothes_create(Clothes **head, char name[], char type, float price, int orde
   tmp->__delete = &clothes_delete;
 
   tmp->next = *head;
-  /* !Container
-  if(*head){
-    insert_into_container(&clothes_list_head, (void *)&(tmp->next));
-  } else {
-    insert_into_container(&clothes_list_head, (void *)head);
-  }
-  */
   *head = tmp;
 
   /* edit the category stats */
@@ -251,13 +245,6 @@ int order_create(Order **head, char date[], char name[], int mark, Clothes *clot
   tmp->__delete = &order_delete;
 
   tmp->next = *head;
-  /* !Container
-  if(*head){
-    insert_into_container(&order_list_head, (void *)&(tmp->next));
-  } else {
-    insert_into_container(&order_list_head, (void *)head);
-  }
-  */
   *head = tmp;
 
   /* edit the clothes stats */
@@ -281,23 +268,6 @@ int customer_create(Customer **head, char name[], int order_count, float money_c
   return 1;
 }
 
-/* !Container
-void insert_into_container(Container **head, void *data){
-  Container *temp = NULL;
-  temp = (Container *)malloc(sizeof(Container));
-  temp->data = data;
-  if(*head){
-    temp->next = *head;
-  } else {
-    temp->next = NULL;
-  }
-  *head = temp;
-}
-*/
-
-/* !Container
-int data_delete(Container **self, int type){
-*/
 int data_delete(){
   /* delete target data */
   // self: target struct pointer
@@ -308,18 +278,9 @@ int data_delete(){
   }
 
   return 1;
-  /* delete container */
-  /* !Container
-  Container *needfree = *self;
-  *self = needfree->next;
-  free(needfree);
-  needfree = NULL;
-  return 1;
-  */
 }
 
 int category_delete(void *self){
-  error_out("category_delete called.");
   /* init */
   Category **target = (Category **)self;
   Category *needfreeca = *target;
@@ -419,32 +380,6 @@ Customer **customer_search(Customer **head, char name[20]){
     head = &((*head)->next);
   }
   return NULL;
-}
-
-void data_out(){
-  Category *category_itor = category_head;
-  while(category_itor){
-    g_print("--------------------------\n");
-    g_print("Category:\n code: %c\n name: %s\n clothes_count: %d \n", category_itor->code, category_itor->name, category_itor->clothes_count);
-
-    Clothes *clothes_itor = category_itor->clothes;
-    while(clothes_itor){
-      g_print("--------------------------\n");
-      g_print("Clothes:\n category_name: %s\n name: %s\n type: %c\n price: %f\n mark: %f\n order_count: %d\n",
-              clothes_itor->category->name, clothes_itor->name, clothes_itor->type, clothes_itor->price, clothes_itor->mark, clothes_itor->order_count);
-
-      Order *order_itor = clothes_itor->order;
-      while(order_itor){
-        g_print("--------------------------\n");
-        g_print("Order:\n date: %s\n name: %s\n mark: %d\n",
-                order_itor->date, order_itor->name, order_itor->mark);
-        order_itor = order_itor->next;
-      }
-      clothes_itor = clothes_itor->next;
-    }
-    category_itor = category_itor->next;
-  }
-  g_print("--------------------------\n");
 }
 
 void create_list_store(GtkListStore **liststore, int type){
@@ -696,7 +631,6 @@ int date_get_quarter(int date){
 /* Basic I/O */
 
 int save_file(){
-  error_out("save_file called.");
   if(!file){
     error_out("save_file: No file loaded.");
     return 0;
@@ -735,12 +669,10 @@ int save_file(){
 }
 
 void open_file(char *filename){
-  error_out("open_file called.");
   file = fopen(filename, "rb+");
 }
 
 int load_file(){
-  error_out("load_file called.");
   if(!file){
     error_out("load_file: No file opened.");
     return 0;
@@ -800,7 +732,6 @@ int load_file(){
                     order_processed++;
                     load_order_temp = load_order_tail;
                     load_order_tail->next = (Order *)malloc(sizeof(Order));
-                    //insert_into_container(&order_list_head, (void *)&(load_order_tail->next));
                     load_order_tail = load_order_tail->next;
                   } while(order_processed < load_clothes_tail->order_count);
                   load_order_temp->next = NULL;
@@ -808,7 +739,6 @@ int load_file(){
                   load_order_tail = NULL;
 
                   load_clothes_tail->order = load_order_head;
-                  //order_list_head->data = (void *)&(load_clothes_tail->order);
                 } else {
                   load_clothes_tail->order = NULL;
                 }
@@ -819,7 +749,6 @@ int load_file(){
               clothes_processed++;
               load_clothes_temp = load_clothes_tail;
               load_clothes_tail->next = (Clothes *)malloc(sizeof(Clothes));
-              //insert_into_container(&clothes_list_head, (void *)&(load_clothes_tail->next));
               load_clothes_tail = load_clothes_tail->next;
             } while(clothes_processed < load_category_tail->clothes_count);
             load_clothes_temp->next = NULL;
@@ -827,7 +756,6 @@ int load_file(){
             load_clothes_tail = NULL;
 
             load_category_tail->clothes = load_clothes_head;
-            //clothes_list_head->data = (void *)&(load_category_tail->clothes);
           } else {
             load_category_tail->clothes = NULL;
           }
@@ -837,7 +765,6 @@ int load_file(){
         /* prepare for next category */
         load_category_temp = load_category_tail;
         load_category_tail->next = (Category *)malloc(sizeof(Category));
-        //insert_into_container(&category_list_head, (void *)&(load_category_tail->next));
         load_category_tail = load_category_tail->next;
       } while(!feof(file));
       free(load_category_tail);
@@ -846,7 +773,6 @@ int load_file(){
       if(count){
         load_category_temp->next = NULL;
         category_head = load_category_head;
-        //category_list_head->data = (void *)&(category_head);
       } else {
         category_head = NULL;
       }
@@ -854,14 +780,13 @@ int load_file(){
       category_head = NULL;
     }
     /* end load category */
-
-    error_out("load_file: finished loading.");
+    updated = TRUE;
+    g_print("load_file: finished loading.\n");
     return 1;
   }
 }
 
 void close_file(){
-  error_out("close_file called.");
   if(file){
     fclose(file);
     file = NULL;
@@ -869,7 +794,6 @@ void close_file(){
 }
 
 char *file_choose(int type){
-  error_out("file_choose called.");
   GtkWidget *dialog = NULL;
   GtkFileChooser *chooser = NULL;
 
@@ -881,12 +805,6 @@ char *file_choose(int type){
   } else if(type == FILE_CHOOSE_SAVE){
     dialog = gtk_file_chooser_dialog_new(
       "保存", NULL, GTK_FILE_CHOOSER_ACTION_SAVE,
-      "取消", GTK_RESPONSE_CANCEL,
-      "确定", GTK_RESPONSE_ACCEPT, NULL);
-    gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
-  } else if(type == FILE_CHOOSE_SAVE_AS){
-    dialog = gtk_file_chooser_dialog_new(
-      "另存为", NULL, GTK_FILE_CHOOSER_ACTION_SAVE,
       "取消", GTK_RESPONSE_CANCEL,
       "确定", GTK_RESPONSE_ACCEPT, NULL);
     gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
@@ -907,96 +825,14 @@ char *file_choose(int type){
 }
 
 void file_new(){
-  error_out("file_new called.");
+  save_confirmation();
   close_file();
   clean_var();
-
-  /* for test */
-  g_print("Add C1\n");
-  category_create(&category_head, '1', "a", 0, NULL);
-  data_out();
-  g_print("Add CL1\n");
-  clothes_create(&(category_head->clothes), "clothes 1", '1', 233, 0, 0, category_head, NULL);
-  data_out();
-  g_print("Add O1\n");
-  order_create(&(category_head->clothes->order), "23333333", "熊猫", 3, category_head->clothes);
-  data_out();
-  g_print("Add O2\n");
-  order_create(&(category_head->clothes->order), "33333333", "熊猫2", 5, category_head->clothes);
-  data_out();
-  g_print("Add O3\n");
-  order_create(&(category_head->clothes->order), "13333333", "熊猫3", 4, category_head->clothes);
-  data_out();
-  g_print("Add CL2\n");
-  clothes_create(&(category_head->clothes), "clothes 2", '1', 233, 0, 0, category_head, NULL);
-  data_out();
-  g_print("Add C2\n");
-  category_create(&category_head, '2', "yoo", 0, NULL);
-  data_out();
-  g_print("Add C3\n");
-  category_create(&category_head, '3', "!o", 0, NULL);
-  data_out();
-
-
-  g_print("Del O1\n");
-  order_delete(&(category_head->next->next->clothes->next->order->next->next));
-  data_out();
-
-  g_print("Del CL1\n");
-  clothes_delete(&(category_head->next->next->clothes->next));
-  data_out();
-
-  g_print("Del C1\n");
-  category_delete(&(category_head->next->next));
-  data_out();
-
-  g_print("Del All\n");
-  data_delete();
-  data_out();
-
-
-  g_print("Add C1\n");
-  category_create(&category_head, '1', "a", 0, NULL);
-  g_print("Add CL1\n");
-  clothes_create(&(category_head->clothes), "喵", '1', 233, 0, 0, category_head, NULL);
-  g_print("Add O1\n");
-  order_create(&(category_head->clothes->order), "23333333", "熊猫", 3, category_head->clothes);
-  g_print("Add O2\n");
-  order_create(&(category_head->clothes->order), "33333333", "熊猫2", 5, category_head->clothes);
-  g_print("Add O3\n");
-  order_create(&(category_head->clothes->order), "13333333", "熊猫3", 4, category_head->clothes);
-  g_print("Add CL2\n");
-  clothes_create(&(category_head->clothes), "clothes 2", '1', 233, 0, 0, category_head, NULL);
-  g_print("Add CL3\n");
-  clothes_create(&(category_head->clothes), "clothes 3", '1', 233, 0, 0, category_head, NULL);
-  g_print("Add C2\n");
-  category_create(&category_head, '2', "yoo", 0, NULL);
-  g_print("Add C3\n");
-  category_create(&category_head, '3', "!o", 0, NULL);
-  //data_out();
-
-  Category *result_category = *category_search('3');
-  Clothes *result_clothes = *clothes_search("喵");
-  //Clothes *result_clothes = *clothes_search("clothes 2");
-  g_print("Category:\n code: %c\n", (result_category)->code);
-  g_print("Clothes:\n name: %s\n", (result_clothes)->name);
-  data_out();
-  
-  result_category = *category_search('1');
-
-  /*
-  g_print("Del C3\n");
-  data_delete(&category_head, TYPE_CATEGORY);
-  data_out();
-  g_print("Del C1\n");
-  data_delete(&(category_head->next), TYPE_CATEGORY);
-  data_out();
-  */
+  updated = TRUE;
 }
 
 void file_open(){
-  error_out("file_open called.");
-
+  save_confirmation();
   char *filename = file_choose(FILE_CHOOSE_OPEN);
   if(filename){
     if(file){
@@ -1019,9 +855,7 @@ void file_open(){
 }
 
 void file_save(){
-  error_out("file_save called.");
-  data_out();
-  short save_error;
+  int save_error;
   if(file){
     if(!save_file()){
       save_error = 1;
@@ -1043,35 +877,15 @@ void file_save(){
   }
 }
 
-void file_save_as(){
-  error_out("file_save_as called.");
-  g_print("CH: %c%s%d\n", category_head->code, category_head->name, category_head->clothes_count);
-  char *filename = file_choose(FILE_CHOOSE_SAVE_AS);
-  if(filename){
-    close_file();
-    file = fopen(filename, "wb+");
-    if( !(file && save_file()) ){
-      error_out("Save failed.");
-    }
-  }
-
-  free(filename);
-  filename = NULL;
-}
-
 void file_quit(){
-  error_out("file_quit called.");
+  save_confirmation();
   close_file();
   gtk_main_quit();
 }
 /* End Basic I/O */
 
-
-
 /* Query */
-
 void query_category_all(void *pass, int call_type){
-  error_out("query_category_all called");
   last_func = &query_category_all;
   clean_column();
 
@@ -1080,43 +894,15 @@ void query_category_all(void *pass, int call_type){
 
   Category **category_itor = &category_head;
   while(*category_itor){
-    /*
-    gtk_list_store_append(liststore, &iter);
-    gtk_list_store_set(
-    liststore, &iter,
-    CATEGORY_ALL_POINTER, category_itor,
-    CATEGORY_ALL_TYPE, TYPE_CATEGORY,
-    CATEGORY_ALL_CODE, string((*category_itor)->code),
-    CATEGORY_ALL_NAME, (*category_itor)->name,
-    CATEGORY_ALL_CLOTHES_COUNT, (*category_itor)->clothes_count,
-    -1);
-    */
     insert_into_list_store(&liststore, category_itor, CATEGORY_ALL);
     category_itor = &((*category_itor)->next);
   }
 
   gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(liststore));
-  /*
-  GtkCellRenderer *renderer;
-  GtkTreeViewColumn *column;
-  renderer = gtk_cell_renderer_text_new();
-  char column_title[3][20] = {"分类编码", "分类名称", "服装数"};
-  int column_line[3] = {CATEGORY_ALL_CODE, CATEGORY_ALL_NAME, CATEGORY_ALL_CLOTHES_COUNT};
-  int i = 0;
-  for(i=0; i<3; i++){
-    column = gtk_tree_view_column_new_with_attributes(
-      column_title[i],
-      renderer,
-      "text", column_line[i],
-      NULL);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
-  }
-  */
   create_column(CATEGORY_ALL);
 }
 
 void query_clothes_all(void *pass, int call_type){
-  error_out("query_clothes_all called");
   last_func = &query_clothes_all;
   clean_column();
 
@@ -1127,20 +913,6 @@ void query_clothes_all(void *pass, int call_type){
   while(*category_itor){
     Clothes **clothes_itor = &((*category_itor)->clothes);
     while(*clothes_itor){
-      /*
-      gtk_list_store_append(liststore, &iter);
-      gtk_list_store_set(
-      liststore, &iter,
-      CLOTHES_ALL_POINTER, clothes_itor,
-      CLOTHES_ALL_TYPE, TYPE_CLOTHES,
-      CLOTHES_ALL_CODE, string((*category_itor)->code),
-      CLOTHES_ALL_NAME, (*clothes_itor)->name,
-      CLOTHES_ALL_CTYPE, ctype_to_string((*clothes_itor)->type),
-      CLOTHES_ALL_PRICE, (*clothes_itor)->price,
-      CLOTHES_ALL_MARK, (*clothes_itor)->mark,
-      CLOTHES_ALL_ORDER_COUNT, (*clothes_itor)->order_count,
-      -1);
-      */
       insert_into_list_store(&liststore, clothes_itor, CLOTHES_ALL);
       clothes_itor = &((*clothes_itor)->next);
     }
@@ -1148,27 +920,10 @@ void query_clothes_all(void *pass, int call_type){
   }
 
   gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(liststore));
-  /*
-  GtkCellRenderer *renderer;
-  GtkTreeViewColumn *column;
-  renderer = gtk_cell_renderer_text_new();
-  char column_title[6][20] = {"分类编码", "服装名称", "式样", "单价", "评价指数", "售出件数"};
-  int column_line[6] = {CLOTHES_ALL_CODE, CLOTHES_ALL_NAME, CLOTHES_ALL_CTYPE, CLOTHES_ALL_PRICE, CLOTHES_ALL_MARK, CLOTHES_ALL_ORDER_COUNT};
-  int i = 0;
-  for(i=0; i<6; i++){
-    column = gtk_tree_view_column_new_with_attributes(
-      column_title[i],
-      renderer,
-      "text", column_line[i],
-      NULL);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
-  }
-  */
   create_column(CLOTHES_ALL);
 }
 
 void query_order_all(void *pass, int call_type){
-  error_out("query_order_all called");
   last_func = &query_order_all;
   clean_column();
 
@@ -1181,18 +936,6 @@ void query_order_all(void *pass, int call_type){
     while(*clothes_itor){
       Order **order_itor = &((*clothes_itor)->order);
       while(*order_itor){
-        /*
-        gtk_list_store_append(liststore, &iter);
-        gtk_list_store_set(
-        liststore, &iter,
-        ORDER_ALL_POINTER, order_itor,
-        ORDER_ALL_TYPE, TYPE_ORDER,
-        ORDER_ALL_CNAME, (*order_itor)->clothes->name,
-        ORDER_ALL_DATE, (*order_itor)->date,
-        ORDER_ALL_NAME, (*order_itor)->name,
-        ORDER_ALL_MARK, (*order_itor)->mark,
-        -1);
-        */
         insert_into_list_store(&liststore, order_itor, ORDER_ALL);
         order_itor = &((*order_itor)->next);
       }
@@ -1202,22 +945,6 @@ void query_order_all(void *pass, int call_type){
   }
 
   gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(liststore));
-  /*
-  GtkCellRenderer *renderer;
-  GtkTreeViewColumn *column;
-  renderer = gtk_cell_renderer_text_new();
-  char column_title[4][20] = {"服装名称", "销售日期", "客户名称", "客户评价"};
-  int column_line[4] = {ORDER_ALL_CNAME, ORDER_ALL_DATE, ORDER_ALL_NAME, ORDER_ALL_MARK};
-  int i = 0;
-  for(i=0; i<4; i++){
-    column = gtk_tree_view_column_new_with_attributes(
-      column_title[i],
-      renderer,
-      "text", column_line[i],
-      NULL);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
-  }
-  */
   create_column(ORDER_ALL);
 }
 
@@ -1554,7 +1281,6 @@ void query_order_customer_date(void *pass, int call_type){
   }
 }
 
-
 void query_order_name_mark(void *pass, int call_type){
   static char name[30];
   static float mark_max;
@@ -1657,57 +1383,10 @@ void query_order_name_mark(void *pass, int call_type){
 /* End Query */
 
 /* Maintenance */
-
 int maintenance_category_dialog(void *self){
   /* init */
   
   Category **category = (Category **)self;
-  /* tmp
-  char title[100];
-  if(!category){
-    strcpy(title, "添加服装分类");
-  } else {
-    strcpy(title, "修改服装分类");
-  }
-
-  GtkDialogFlags flags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
-
-  GtkWidget *category_dialog = GTK_WIDGET(gtk_dialog_new_with_buttons(
-    title,
-    window,
-    flags,
-    "确定", GTK_RESPONSE_ACCEPT,
-    "取消", GTK_RESPONSE_REJECT,
-    NULL));
-
-  GtkWidget *label_code = gtk_label_new("分类编码");
-  GtkWidget *entry_code = gtk_entry_new();
-  GtkWidget *label_name = gtk_label_new("分类名称");
-  GtkWidget *entry_name = gtk_entry_new();
-  if(category){
-    gtk_entry_set_text(GTK_ENTRY(entry_code), string((*category)->code));
-    gtk_entry_set_text(GTK_ENTRY(entry_name), (*category)->name);
-  }
-
-  GtkWidget *category_grid = gtk_grid_new();
-  gtk_grid_insert_column(GTK_GRID(category_grid), 0);
-  gtk_grid_insert_column(GTK_GRID(category_grid), 1);
-  gtk_grid_insert_row(GTK_GRID(category_grid), 0);
-  gtk_grid_insert_row(GTK_GRID(category_grid), 1);
-  gtk_grid_set_row_spacing(GTK_GRID(category_grid), 5);
-  gtk_grid_set_column_spacing(GTK_GRID(category_grid), 5);
-  gtk_grid_attach(GTK_GRID(category_grid), label_code, 0, 0, 1, 1);
-  gtk_grid_attach(GTK_GRID(category_grid), label_name, 0, 1, 1, 1);
-  gtk_grid_attach(GTK_GRID(category_grid), entry_code, 1, 0, 1, 1);
-  gtk_grid_attach(GTK_GRID(category_grid), entry_name, 1, 1, 1, 1);
-
-  gtk_container_add(GTK_CONTAINER(gtk_dialog_get_content_area(GTK_DIALOG(category_dialog))), category_grid);
-
-  gtk_widget_show_all(category_dialog);
-
-  */
-
-  //tmp2
   int rws = 2;
   char title[100];
   char argi[rws*2+1][100];
@@ -1738,10 +1417,8 @@ int maintenance_category_dialog(void *self){
 
   while(gtk_dialog_run(GTK_DIALOG(dialog_result[0])) == GTK_RESPONSE_ACCEPT){
     validate_message[0] = '\0';
-    //buffer = gtk_entry_get_buffer(GTK_ENTRY(entry_code));
     buffer = gtk_entry_get_buffer(GTK_ENTRY(dialog_result[2*1+1]));
     code = gtk_entry_buffer_get_text(buffer)[0];
-    //buffer = gtk_entry_get_buffer(GTK_ENTRY(entry_name));
     buffer = gtk_entry_get_buffer(GTK_ENTRY(dialog_result[2*2+1]));
     strcpy(name, gtk_entry_buffer_get_text(buffer));
 
@@ -1788,13 +1465,8 @@ int maintenance_category_dialog(void *self){
 }
 
 int maintenance_clothes_dialog(void *self){
-  error_out("maintenance_clothes_dialog called");
   /* init */
   Clothes **clothes = (Clothes **)self;
-
-  /* argi[0]: title */
-  /* argi[1-4]: lable */
-  /* argi[5-8]: entry */
   int rws = 4;
   char title[100];
   char argi[rws*4+1][100];
@@ -1907,13 +1579,8 @@ int maintenance_clothes_dialog(void *self){
 
 
 int maintenance_order_dialog(void *self){
-  error_out("maintenance_order_dialog called");
   /* init */
   Order **order = (Order **)self;
-
-  /* argi[0]: title */
-  /* argi[1-4]: lable */
-  /* argi[5-8]: entry */
   int rws = 4;
   char title[100];
   char argi[rws*4+1][100];
@@ -2029,6 +1696,7 @@ int maintenance_order_dialog(void *self){
 
 void maintenance_add_category(){
   if(maintenance_category_dialog(NULL)){
+    updated = FALSE;
     call_last_func();
   } else {
     error_out("Add category failed.");
@@ -2037,6 +1705,7 @@ void maintenance_add_category(){
 
 void maintenance_add_clothes(){
   if(maintenance_clothes_dialog(NULL)){
+    updated = FALSE;
     call_last_func();
   } else {
     error_out("Add clothes failed.");
@@ -2045,6 +1714,7 @@ void maintenance_add_clothes(){
 
 void maintenance_add_order(){
   if(maintenance_order_dialog(NULL)){
+    updated = FALSE;
     call_last_func();
   } else {
     error_out("Add order failed.");
@@ -2070,6 +1740,7 @@ void maintenance_delete(){
       gtk_tree_model_get(model, &iter, 0, &self, -1);
       Call_func **target = (Call_func **)self;
       (*((*target)->__delete))(self);
+      updated = FALSE;
     }
     gtk_widget_destroy(GTK_WIDGET(question_dialog[0]));
     free(question_dialog);
@@ -2097,6 +1768,7 @@ void maintenance_edit(){
       case TYPE_OTHER: return;
     }
     if(success){
+      updated = FALSE;
       call_last_func();
     } else {
       error_out("Edit failed.");
@@ -2109,7 +1781,6 @@ void maintenance_edit(){
 
 /* Statistics */
 void statistics_category(void *pass, int call_type){
-  error_out("statistics_category called");
   last_func = &statistics_category;
   clean_column();
 
@@ -2153,7 +1824,6 @@ void statistics_category(void *pass, int call_type){
 }
 
 void statistics_year(void *pass, int call_type){
-  error_out("statistics_year called");
 
   static int year_max;
   static int year_min;
@@ -2252,7 +1922,6 @@ void statistics_year(void *pass, int call_type){
 
 void statistics_customer(void *pass, int call_type){
   Customer *customer_head = NULL;
-  error_out("statistics_customer called");
   last_func = &statistics_customer;
   clean_column();
 
@@ -2426,6 +2095,8 @@ void other_about(){
   gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about_window), program_name);
   gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(about_window), version);
   gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about_window), comments);
+  gtk_about_dialog_set_website(GTK_ABOUT_DIALOG(about_window), website);
+  gtk_about_dialog_set_website_label(GTK_ABOUT_DIALOG(about_window), website_lable);
   gtk_about_dialog_set_authors (GTK_ABOUT_DIALOG(about_window), author);
   gtk_about_dialog_set_logo(GTK_ABOUT_DIALOG(about_window), NULL);
   gtk_about_dialog_set_license_type(GTK_ABOUT_DIALOG(about_window), GTK_LICENSE_GPL_2_0);

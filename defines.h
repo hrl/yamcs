@@ -3,22 +3,20 @@
 
 #define UI_FILE "UI.xml"
 
-const char *version = "0.1";
+const char *version = "0.2";
 const char *program_name = "Yet Another Manager of a simple Clothing Shop";
 const char *comments = "Full of Bugs.\nIt Works.";
+const char *website = "https://github.com/hrl/yamcs";
+const char *website_lable = "GitHub";
 const char *author[] = {"Ruilin Huang", NULL};
 
 FILE *file = NULL;
-short updated; /*  */
+short updated = TRUE;
 GtkWindow *window = NULL;
 GtkTreeView *treeview = NULL;
 void (*last_func)(void *pass, int call_type);
 
 Category *category_head;  /* Main head of the linked list */
-
-Container *category_list_head = NULL;
-Container *clothes_list_head = NULL;
-Container *order_list_head = NULL;
 
 enum {
 	FILE_CHOOSE_OPEN,
