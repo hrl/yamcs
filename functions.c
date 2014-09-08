@@ -95,8 +95,13 @@ void build_UI(){
   /* -Query menu */
   /* --Query category menu */
   g_signal_connect(G_OBJECT(menuitem_query_category_all), "activate", G_CALLBACK(query_category_all), NULL);
+  g_signal_connect(G_OBJECT(menuitem_query_category_code), "activate", G_CALLBACK(query_category_code), NULL);
   g_signal_connect(G_OBJECT(menuitem_query_clothes_all), "activate", G_CALLBACK(query_clothes_all), NULL);
+  g_signal_connect(G_OBJECT(menuitem_query_clothes_name), "activate", G_CALLBACK(query_clothes_name), NULL);
+  g_signal_connect(G_OBJECT(menuitem_query_clothes_code_price), "activate", G_CALLBACK(query_clothes_code_price), NULL);
   g_signal_connect(G_OBJECT(menuitem_query_order_all), "activate", G_CALLBACK(query_order_all), NULL);
+  g_signal_connect(G_OBJECT(menuitem_query_order_customer_date), "activate", G_CALLBACK(query_order_customer_date), NULL);
+  g_signal_connect(G_OBJECT(menuitem_query_order_name_mark), "activate", G_CALLBACK(query_order_name_mark), NULL);
 
   /* --Query clothes menu */
   /* --Query order menu */
@@ -845,6 +850,116 @@ void file_quit(){
 
 
 /* Query */
+void create_list_store(GtkListStore **liststore, int type){
+  if(type == CATEGORY_ALL){
+    *liststore = gtk_list_store_new(
+      CATEGORY_ALL_COLUMNS,
+      G_TYPE_POINTER,
+      G_TYPE_INT,
+      G_TYPE_STRING, //CATEGORY_ALL_CODE
+      G_TYPE_STRING, //CATEGORY_ALL_NAME
+      G_TYPE_INT     //CATEGORY_ALL_CLOTHES_COUNT
+      );
+  } else if (type == CLOTHES_ALL){
+    *liststore = gtk_list_store_new(
+      CLOTHES_ALL_COLUMNS,
+      G_TYPE_POINTER,
+      G_TYPE_INT,
+      G_TYPE_STRING, //CLOTHES_ALL_CODE
+      G_TYPE_STRING, //CLOTHES_ALL_NAME
+      G_TYPE_STRING, //CLOTHES_ALL_CTYPE
+      G_TYPE_FLOAT,  //CLOTHES_ALL_PRICE
+      G_TYPE_FLOAT,  //CLOTHES_ALL_MARK
+      G_TYPE_INT     //CLOTHES_ALL_ORDER_COUNT
+      );
+  } else if (type == ORDER_ALL){
+    *liststore = gtk_list_store_new(
+      ORDER_ALL_COLUMNS,
+      G_TYPE_POINTER,
+      G_TYPE_INT,
+      G_TYPE_STRING, //ORDER_ALL_CNAME
+      G_TYPE_STRING, //ORDER_ALL_DATE
+      G_TYPE_STRING, //ORDER_ALL_NAME
+      G_TYPE_INT     //ORDER_ALL_MARK
+      );
+  }
+}
+
+void insert_into_list_store(GtkListStore **liststore, void *data, int type){
+  GtkTreeIter iter;
+  if(type == CATEGORY_ALL){
+    Category **category_itor = (Category **)data;
+    gtk_list_store_append(*liststore, &iter);
+    gtk_list_store_set(
+      *liststore, &iter,
+      CATEGORY_ALL_POINTER, category_itor,
+      CATEGORY_ALL_TYPE, TYPE_CATEGORY,
+      CATEGORY_ALL_CODE, string((*category_itor)->code),
+      CATEGORY_ALL_NAME, (*category_itor)->name,
+      CATEGORY_ALL_CLOTHES_COUNT, (*category_itor)->clothes_count,
+      -1);
+  } else if(type == CLOTHES_ALL){
+    Clothes **clothes_itor = (Clothes **)data;
+    gtk_list_store_append(*liststore, &iter);
+    gtk_list_store_set(
+      *liststore, &iter,
+      CLOTHES_ALL_POINTER, clothes_itor,
+      CLOTHES_ALL_TYPE, TYPE_CLOTHES,
+      CLOTHES_ALL_CODE, string((*clothes_itor)->category->code),
+      CLOTHES_ALL_NAME, (*clothes_itor)->name,
+      CLOTHES_ALL_CTYPE, ctype_to_string((*clothes_itor)->type),
+      CLOTHES_ALL_PRICE, (*clothes_itor)->price,
+      CLOTHES_ALL_MARK, (*clothes_itor)->mark,
+      CLOTHES_ALL_ORDER_COUNT, (*clothes_itor)->order_count,
+      -1);
+  } else if(type == ORDER_ALL){
+    Order **order_itor = (Order **)data;
+    gtk_list_store_append(*liststore, &iter);
+    gtk_list_store_set(
+      *liststore, &iter,
+      ORDER_ALL_POINTER, order_itor,
+      ORDER_ALL_TYPE, TYPE_ORDER,
+      ORDER_ALL_CNAME, (*order_itor)->clothes->name,
+      ORDER_ALL_DATE, (*order_itor)->date,
+      ORDER_ALL_NAME, (*order_itor)->name,
+      ORDER_ALL_MARK, (*order_itor)->mark,
+      -1);
+  }
+}
+
+void append_column(char column_title[][20], int column_line[], int cls){
+  GtkCellRenderer *renderer;
+  GtkTreeViewColumn *column;
+  renderer = gtk_cell_renderer_text_new();
+  int i = 0;
+  for(i=0; i<cls; i++){
+    column = gtk_tree_view_column_new_with_attributes(
+      column_title[i],
+      renderer,
+      "text", column_line[i],
+      NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+  }
+}
+
+void create_column(int type){
+  if(type == CATEGORY_ALL){
+    char column_title[3][20] = {"分类编码", "分类名称", "服装数"};
+    int column_line[3] = {CATEGORY_ALL_CODE, CATEGORY_ALL_NAME, CATEGORY_ALL_CLOTHES_COUNT};
+    int cls = 3;
+    append_column(column_title, column_line, cls);
+  } else if(type == CLOTHES_ALL){ 
+    char column_title[6][20] = {"分类编码", "服装名称", "式样", "单价", "评价指数", "售出件数"};
+    int column_line[6] = {CLOTHES_ALL_CODE, CLOTHES_ALL_NAME, CLOTHES_ALL_CTYPE, CLOTHES_ALL_PRICE, CLOTHES_ALL_MARK, CLOTHES_ALL_ORDER_COUNT};
+    int cls = 6;
+    append_column(column_title, column_line, cls);
+  } else if(type == ORDER_ALL){
+    char column_title[4][20] = {"服装名称", "销售日期", "客户名称", "客户评价"};
+    int column_line[4] = {ORDER_ALL_CNAME, ORDER_ALL_DATE, ORDER_ALL_NAME, ORDER_ALL_MARK};
+    int cls = 4;
+    append_column(column_title, column_line, cls);
+  }
+}
 
 void query_category_all(void *pass, int call_type){
   error_out("query_category_all called");
@@ -852,18 +967,11 @@ void query_category_all(void *pass, int call_type){
   clean_column();
 
   GtkListStore *liststore;
-  GtkTreeIter iter;
-
-  liststore = gtk_list_store_new(
-    CATEGORY_ALL_COLUMNS,
-    G_TYPE_POINTER,
-    G_TYPE_INT,
-    G_TYPE_STRING,
-    G_TYPE_STRING,
-    G_TYPE_INT);
+  create_list_store(&liststore, CATEGORY_ALL);
 
   Category **category_itor = &category_head;
   while(*category_itor){
+    /*
     gtk_list_store_append(liststore, &iter);
     gtk_list_store_set(
     liststore, &iter,
@@ -873,11 +981,13 @@ void query_category_all(void *pass, int call_type){
     CATEGORY_ALL_NAME, (*category_itor)->name,
     CATEGORY_ALL_CLOTHES_COUNT, (*category_itor)->clothes_count,
     -1);
+    */
+    insert_into_list_store(&liststore, category_itor, CATEGORY_ALL);
     category_itor = &((*category_itor)->next);
   }
 
   gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(liststore));
-
+  /*
   GtkCellRenderer *renderer;
   GtkTreeViewColumn *column;
   renderer = gtk_cell_renderer_text_new();
@@ -892,6 +1002,8 @@ void query_category_all(void *pass, int call_type){
       NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
   }
+  */
+  create_column(CATEGORY_ALL);
 }
 
 void query_clothes_all(void *pass, int call_type){
@@ -900,24 +1012,13 @@ void query_clothes_all(void *pass, int call_type){
   clean_column();
 
   GtkListStore *liststore;
-  GtkTreeIter iter;
-
-  liststore = gtk_list_store_new(
-    CLOTHES_ALL_COLUMNS,
-    G_TYPE_POINTER,
-    G_TYPE_INT,
-    G_TYPE_STRING, //CLOTHES_ALL_CODE
-    G_TYPE_STRING, //CLOTHES_ALL_NAME
-    G_TYPE_STRING, //CLOTHES_ALL_CTYPE
-    G_TYPE_FLOAT,  //CLOTHES_ALL_PRICE
-    G_TYPE_FLOAT,  //CLOTHES_ALL_MARK
-    G_TYPE_INT     //CLOTHES_ALL_ORDER_COUNT
-    );
+  create_list_store(&liststore, CLOTHES_ALL);
 
   Category **category_itor = &category_head;
   while(*category_itor){
     Clothes **clothes_itor = &((*category_itor)->clothes);
     while(*clothes_itor){
+      /*
       gtk_list_store_append(liststore, &iter);
       gtk_list_store_set(
       liststore, &iter,
@@ -930,13 +1031,15 @@ void query_clothes_all(void *pass, int call_type){
       CLOTHES_ALL_MARK, (*clothes_itor)->mark,
       CLOTHES_ALL_ORDER_COUNT, (*clothes_itor)->order_count,
       -1);
+      */
+      insert_into_list_store(&liststore, clothes_itor, CLOTHES_ALL);
       clothes_itor = &((*clothes_itor)->next);
     }
     category_itor = &((*category_itor)->next);
   }
 
   gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(liststore));
-
+  /*
   GtkCellRenderer *renderer;
   GtkTreeViewColumn *column;
   renderer = gtk_cell_renderer_text_new();
@@ -951,6 +1054,8 @@ void query_clothes_all(void *pass, int call_type){
       NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
   }
+  */
+  create_column(CLOTHES_ALL);
 }
 
 void query_order_all(void *pass, int call_type){
@@ -959,17 +1064,7 @@ void query_order_all(void *pass, int call_type){
   clean_column();
 
   GtkListStore *liststore;
-  GtkTreeIter iter;
-
-  liststore = gtk_list_store_new(
-    ORDER_ALL_COLUMNS,
-    G_TYPE_POINTER,
-    G_TYPE_INT,
-    G_TYPE_STRING, //ORDER_ALL_CNAME
-    G_TYPE_STRING, //ORDER_ALL_DATE
-    G_TYPE_STRING, //ORDER_ALL_NAME
-    G_TYPE_INT     //ORDER_ALL_MARK
-    );
+  create_list_store(&liststore, ORDER_ALL);
 
   Category **category_itor = &category_head;
   while(*category_itor){
@@ -977,6 +1072,7 @@ void query_order_all(void *pass, int call_type){
     while(*clothes_itor){
       Order **order_itor = &((*clothes_itor)->order);
       while(*order_itor){
+        /*
         gtk_list_store_append(liststore, &iter);
         gtk_list_store_set(
         liststore, &iter,
@@ -987,6 +1083,8 @@ void query_order_all(void *pass, int call_type){
         ORDER_ALL_NAME, (*order_itor)->name,
         ORDER_ALL_MARK, (*order_itor)->mark,
         -1);
+        */
+        insert_into_list_store(&liststore, order_itor, ORDER_ALL);
         order_itor = &((*order_itor)->next);
       }
       clothes_itor = &((*clothes_itor)->next);
@@ -995,7 +1093,7 @@ void query_order_all(void *pass, int call_type){
   }
 
   gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(liststore));
-
+  /*
   GtkCellRenderer *renderer;
   GtkTreeViewColumn *column;
   renderer = gtk_cell_renderer_text_new();
@@ -1010,8 +1108,443 @@ void query_order_all(void *pass, int call_type){
       NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
   }
+  */
+  create_column(ORDER_ALL);
 }
 
+void query_category_code(void *pass, int call_type){
+  static char code;
+  int success = 0;
+
+  if(call_type != CALL_TYPE_REDO){
+    int rws = 1;
+    char title[100];
+    char argi[rws*2+1][100];
+    strcpy(argi[0], "查询服装分类");
+    strcpy(argi[1], "分类编码");
+    strcpy(argi[2], "");
+
+    GtkWidget **dialog_result = (GtkWidget **)malloc(sizeof(GtkWidget *)*(rws*2+2));
+    dialog_result = create_edit_dialog(window, rws, argi, dialog_result);
+    gtk_widget_show_all(dialog_result[0]);
+
+    char validate_message[100];
+    validate_message[0] = '\0';
+    GtkEntryBuffer *buffer;
+    GtkWidget **warning_dialog = (GtkWidget **)malloc(sizeof(GtkWidget *)*(1));
+
+    while(gtk_dialog_run(GTK_DIALOG(dialog_result[0])) == GTK_RESPONSE_ACCEPT){
+      validate_message[0] = '\0';
+      buffer = gtk_entry_get_buffer(GTK_ENTRY(dialog_result[2*1+1]));
+      code = gtk_entry_buffer_get_text(buffer)[0];
+
+      /* error check */
+      if(!code){
+        strcpy(validate_message, "请输入完数据");
+      }
+      if(validate_message[0] == '\0' && (code<'1' || code>'5')){
+        strcpy(validate_message, "分类编码错误(1-5)");
+      }
+
+      if(validate_message[0] != '\0'){
+        warning_dialog = create_message_dialog(GTK_WINDOW(dialog_result[0]), validate_message, GTK_MESSAGE_WARNING, warning_dialog);
+        gtk_widget_show_all(warning_dialog[0]);
+        gtk_dialog_run(GTK_DIALOG(warning_dialog[0]));
+        gtk_widget_destroy(GTK_WIDGET(warning_dialog[0]));
+        continue;
+      }
+      /* end error check */
+
+      success = 1;
+      break;
+    }
+
+    gtk_widget_destroy(GTK_WIDGET(dialog_result[0]));
+    
+    free(warning_dialog);
+    free(dialog_result);
+  }
+
+  if(success || call_type == CALL_TYPE_REDO){
+    last_func = &query_category_code;
+    clean_column();
+
+    GtkListStore *liststore;
+    create_list_store(&liststore, CATEGORY_ALL);
+
+    Category **category_itor = category_search(code);
+    if(category_itor){
+      insert_into_list_store(&liststore, category_itor, CATEGORY_ALL);
+    }
+    gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(liststore));
+    create_column(CATEGORY_ALL);
+  }
+}
+
+void query_clothes_name(void *pass, int call_type){
+  static char name[30];
+  int success = 0;
+
+  if(call_type != CALL_TYPE_REDO){
+    int rws = 1;
+    char title[100];
+    char argi[rws*2+1][100];
+    strcpy(argi[0], "查询服装信息");
+    strcpy(argi[1], "服装名称");
+    strcpy(argi[2], "");
+
+    GtkWidget **dialog_result = (GtkWidget **)malloc(sizeof(GtkWidget *)*(rws*2+2));
+    dialog_result = create_edit_dialog(window, rws, argi, dialog_result);
+    gtk_widget_show_all(dialog_result[0]);
+
+    char validate_message[100];
+    validate_message[0] = '\0';
+    char us_name[1000];
+    GtkEntryBuffer *buffer;
+    GtkWidget **warning_dialog = (GtkWidget **)malloc(sizeof(GtkWidget *)*(1));
+
+    while(gtk_dialog_run(GTK_DIALOG(dialog_result[0])) == GTK_RESPONSE_ACCEPT){
+      validate_message[0] = '\0';
+      buffer = gtk_entry_get_buffer(GTK_ENTRY(dialog_result[2*1+1]));
+      strcpy(us_name, gtk_entry_buffer_get_text(buffer));
+
+      /* error check */
+      if(!us_name){
+        strcpy(validate_message, "请输入完数据");
+      }
+      if(validate_message[0] == '\0' && strlen(us_name) > 30){
+        strcpy(validate_message, "服装名称过长");
+      }
+
+      if(validate_message[0] != '\0'){
+        warning_dialog = create_message_dialog(GTK_WINDOW(dialog_result[0]), validate_message, GTK_MESSAGE_WARNING, warning_dialog);
+        gtk_widget_show_all(warning_dialog[0]);
+        gtk_dialog_run(GTK_DIALOG(warning_dialog[0]));
+        gtk_widget_destroy(GTK_WIDGET(warning_dialog[0]));
+        continue;
+      }
+      /* end error check */
+
+      strcpy(name, us_name);
+      success = 1;
+      break;
+    }
+
+    gtk_widget_destroy(GTK_WIDGET(dialog_result[0]));
+    
+    free(warning_dialog);
+    free(dialog_result);
+  }
+
+  if(success || call_type == CALL_TYPE_REDO){
+    last_func = &query_clothes_name;
+    clean_column();
+
+    GtkListStore *liststore;
+    create_list_store(&liststore, CLOTHES_ALL);
+
+    Category **category_itor = &category_head;
+    while(*category_itor){
+      Clothes **clothes_itor = &((*category_itor)->clothes);
+      while(*clothes_itor){
+        if(strstr((*clothes_itor)->name, name)){
+          insert_into_list_store(&liststore, clothes_itor, CLOTHES_ALL);
+        }
+        clothes_itor = &((*clothes_itor)->next);
+      }
+      category_itor = &((*category_itor)->next);
+    }
+    gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(liststore));
+    create_column(CLOTHES_ALL);
+  }
+}
+
+void query_clothes_code_price(void *pass, int call_type){
+  static char code;
+  static float price_max;
+  static float price_min;
+  int success = 0;
+
+  if(call_type != CALL_TYPE_REDO){
+    int rws = 3;
+    char title[100];
+    char argi[rws*2+1][100];
+    strcpy(argi[0], "查询服装信息");
+    strcpy(argi[1], "分类编码");
+    strcpy(argi[2], "价格上限(包含)");
+    strcpy(argi[3], "价格下限(包含)");
+    strcpy(argi[4], "");
+    strcpy(argi[5], "");
+    strcpy(argi[6], "");
+
+    GtkWidget **dialog_result = (GtkWidget **)malloc(sizeof(GtkWidget *)*(rws*2+2));
+    dialog_result = create_edit_dialog(window, rws, argi, dialog_result);
+    gtk_widget_show_all(dialog_result[0]);
+
+    char validate_message[100];
+    validate_message[0] = '\0';
+    GtkEntryBuffer *buffer;
+    GtkWidget **warning_dialog = (GtkWidget **)malloc(sizeof(GtkWidget *)*(1));
+
+    while(gtk_dialog_run(GTK_DIALOG(dialog_result[0])) == GTK_RESPONSE_ACCEPT){
+      validate_message[0] = '\0';
+      buffer = gtk_entry_get_buffer(GTK_ENTRY(dialog_result[2*1+1]));
+      code = gtk_entry_buffer_get_text(buffer)[0];
+      buffer = gtk_entry_get_buffer(GTK_ENTRY(dialog_result[2*2+1]));
+      price_max = atof(gtk_entry_buffer_get_text(buffer));
+      buffer = gtk_entry_get_buffer(GTK_ENTRY(dialog_result[2*3+1]));
+      price_min = atof(gtk_entry_buffer_get_text(buffer));
+
+      /* error check */
+      if(!code){
+        strcpy(validate_message, "请输入完数据");
+      }
+      if(validate_message[0] == '\0' && (code<'1' || code>'5')){
+        strcpy(validate_message, "分类编码错误(1-5)");
+      }
+
+      if(validate_message[0] != '\0'){
+        warning_dialog = create_message_dialog(GTK_WINDOW(dialog_result[0]), validate_message, GTK_MESSAGE_WARNING, warning_dialog);
+        gtk_widget_show_all(warning_dialog[0]);
+        gtk_dialog_run(GTK_DIALOG(warning_dialog[0]));
+        gtk_widget_destroy(GTK_WIDGET(warning_dialog[0]));
+        continue;
+      }
+      /* end error check */
+
+      success = 1;
+      break;
+    }
+
+    gtk_widget_destroy(GTK_WIDGET(dialog_result[0]));
+    
+    free(warning_dialog);
+    free(dialog_result);
+  }
+
+  if(success || call_type == CALL_TYPE_REDO){
+    last_func = &query_clothes_code_price;
+    clean_column();
+
+    GtkListStore *liststore;
+    create_list_store(&liststore, CLOTHES_ALL);
+
+    Category **category_itor = category_search(code);
+    if(category_itor){
+      Clothes **clothes_itor = &((*category_itor)->clothes);
+      while(*clothes_itor){
+        if( (!price_max || (*clothes_itor)->price <= price_max) &&
+            (!price_min || (*clothes_itor)->price >= price_min) ){
+          insert_into_list_store(&liststore, clothes_itor, CLOTHES_ALL);
+        }
+        clothes_itor = &((*clothes_itor)->next);
+      }
+    }
+    gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(liststore));
+    create_column(CLOTHES_ALL);
+  }
+}
+
+void query_order_customer_date(void *pass, int call_type){
+  static char name[20];
+  static int date_max;
+  static int date_min;
+  int success = 0;
+
+  if(call_type != CALL_TYPE_REDO){
+    int rws = 3;
+    char title[100];
+    char argi[rws*2+1][100];
+    strcpy(argi[0], "查询销售信息");
+    strcpy(argi[1], "顾客姓名");
+    strcpy(argi[2], "销售日期上限(包含)");
+    strcpy(argi[3], "销售日期下限(包含)");
+    strcpy(argi[4], "");
+    strcpy(argi[5], "");
+    strcpy(argi[6], "");
+
+    GtkWidget **dialog_result = (GtkWidget **)malloc(sizeof(GtkWidget *)*(rws*2+2));
+    dialog_result = create_edit_dialog(window, rws, argi, dialog_result);
+    gtk_widget_show_all(dialog_result[0]);
+
+    char validate_message[100];
+    validate_message[0] = '\0';
+    char us_name[1000];
+    GtkEntryBuffer *buffer;
+    GtkWidget **warning_dialog = (GtkWidget **)malloc(sizeof(GtkWidget *)*(1));
+
+    while(gtk_dialog_run(GTK_DIALOG(dialog_result[0])) == GTK_RESPONSE_ACCEPT){
+      validate_message[0] = '\0';
+      buffer = gtk_entry_get_buffer(GTK_ENTRY(dialog_result[2*1+1]));
+      strcpy(us_name, gtk_entry_buffer_get_text(buffer));
+      buffer = gtk_entry_get_buffer(GTK_ENTRY(dialog_result[2*2+1]));
+      date_max = atoi(gtk_entry_buffer_get_text(buffer));
+      buffer = gtk_entry_get_buffer(GTK_ENTRY(dialog_result[2*3+1]));
+      date_min = atoi(gtk_entry_buffer_get_text(buffer));
+
+      /* error check */
+      if(!name){
+        strcpy(validate_message, "请输入完数据");
+      }
+      if(validate_message[0] == '\0' && strlen(us_name) > 20){
+        strcpy(validate_message, "客户姓名过长");
+      }
+      if(validate_message[0] == '\0' && date_max && !date_check(date_max)){
+        strcpy(validate_message, "日期错误(yyyymmdd)");
+      }
+      if(validate_message[0] == '\0' && date_min && !date_check(date_min)){
+        strcpy(validate_message, "日期错误(yyyymmdd)");
+      }
+
+      if(validate_message[0] != '\0'){
+        warning_dialog = create_message_dialog(GTK_WINDOW(dialog_result[0]), validate_message, GTK_MESSAGE_WARNING, warning_dialog);
+        gtk_widget_show_all(warning_dialog[0]);
+        gtk_dialog_run(GTK_DIALOG(warning_dialog[0]));
+        gtk_widget_destroy(GTK_WIDGET(warning_dialog[0]));
+        continue;
+      }
+      /* end error check */
+
+      strcpy(name, us_name);
+      success = 1;
+      break;
+    }
+
+    gtk_widget_destroy(GTK_WIDGET(dialog_result[0]));
+    
+    free(warning_dialog);
+    free(dialog_result);
+  }
+
+  if(success || call_type == CALL_TYPE_REDO){
+    last_func = &query_order_customer_date;
+    clean_column();
+
+    GtkListStore *liststore;
+    create_list_store(&liststore, ORDER_ALL);
+
+    Category **category_itor = &category_head;
+    while(*category_itor){
+      Clothes **clothes_itor = &((*category_itor)->clothes);
+      while(*clothes_itor){
+        Order **order_itor = &((*clothes_itor)->order);
+        while(*order_itor){
+          if( strstr((*order_itor)->name, name) &&
+              (!date_max || atoi((*order_itor)->date) <= date_max) &&
+              (!date_min || atoi((*order_itor)->date) >= date_min) ){
+            insert_into_list_store(&liststore, order_itor, ORDER_ALL);
+          }
+          order_itor = &((*order_itor)->next);
+        }
+        clothes_itor = &((*clothes_itor)->next);
+      }
+      category_itor = &((*category_itor)->next);
+    }
+    gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(liststore));
+    create_column(ORDER_ALL);
+  }
+}
+
+
+void query_order_name_mark(void *pass, int call_type){
+  static char name[30];
+  static float mark_max;
+  static float mark_min;
+  int success = 0;
+
+  if(call_type != CALL_TYPE_REDO){
+    int rws = 3;
+    char title[100];
+    char argi[rws*2+1][100];
+    strcpy(argi[0], "查询销售信息");
+    strcpy(argi[1], "服装名称");
+    strcpy(argi[2], "服装评价上限(包含)");
+    strcpy(argi[3], "服装评价下限(包含)");
+    strcpy(argi[4], "");
+    strcpy(argi[5], "");
+    strcpy(argi[6], "");
+
+    GtkWidget **dialog_result = (GtkWidget **)malloc(sizeof(GtkWidget *)*(rws*2+2));
+    dialog_result = create_edit_dialog(window, rws, argi, dialog_result);
+    gtk_widget_show_all(dialog_result[0]);
+
+    char validate_message[100];
+    validate_message[0] = '\0';
+    char us_name[1000];
+    GtkEntryBuffer *buffer;
+    GtkWidget **warning_dialog = (GtkWidget **)malloc(sizeof(GtkWidget *)*(1));
+
+    while(gtk_dialog_run(GTK_DIALOG(dialog_result[0])) == GTK_RESPONSE_ACCEPT){
+      validate_message[0] = '\0';
+      buffer = gtk_entry_get_buffer(GTK_ENTRY(dialog_result[2*1+1]));
+      strcpy(us_name, gtk_entry_buffer_get_text(buffer));
+      buffer = gtk_entry_get_buffer(GTK_ENTRY(dialog_result[2*2+1]));
+      mark_max = atof(gtk_entry_buffer_get_text(buffer));
+      buffer = gtk_entry_get_buffer(GTK_ENTRY(dialog_result[2*3+1]));
+      mark_min = atof(gtk_entry_buffer_get_text(buffer));
+
+      /* error check */
+      if(!name){
+        strcpy(validate_message, "请输入完数据");
+      }
+      if(validate_message[0] == '\0' && strlen(us_name) > 30){
+        strcpy(validate_message, "服装名称过长");
+      }
+      if(validate_message[0] == '\0' && mark_min && (mark_min<1 || mark_min>5)){
+        strcpy(validate_message, "评分错误(1-5)");
+      }
+      if(validate_message[0] == '\0' && mark_max && (mark_max<1 || mark_max>5)){
+        strcpy(validate_message, "评分错误(1-5)");
+      }
+
+      if(validate_message[0] != '\0'){
+        warning_dialog = create_message_dialog(GTK_WINDOW(dialog_result[0]), validate_message, GTK_MESSAGE_WARNING, warning_dialog);
+        gtk_widget_show_all(warning_dialog[0]);
+        gtk_dialog_run(GTK_DIALOG(warning_dialog[0]));
+        gtk_widget_destroy(GTK_WIDGET(warning_dialog[0]));
+        continue;
+      }
+      /* end error check */
+
+      strcpy(name, us_name);
+      success = 1;
+      break;
+    }
+
+    gtk_widget_destroy(GTK_WIDGET(dialog_result[0]));
+    
+    free(warning_dialog);
+    free(dialog_result);
+  }
+
+  if(success || call_type == CALL_TYPE_REDO){
+    last_func = &query_order_name_mark;
+    clean_column();
+
+    GtkListStore *liststore;
+    create_list_store(&liststore, ORDER_ALL);
+
+    Category **category_itor = &category_head;
+    while(*category_itor){
+      Clothes **clothes_itor = &((*category_itor)->clothes);
+      while(*clothes_itor){
+        if( strstr((*clothes_itor)->name, name) &&
+            (!mark_max || (*clothes_itor)->mark <= mark_max) &&
+            (!mark_min || (*clothes_itor)->mark >= mark_min) ){
+          Order **order_itor = &((*clothes_itor)->order);
+          while(*order_itor){
+            insert_into_list_store(&liststore, order_itor, ORDER_ALL);
+            order_itor = &((*order_itor)->next);
+          }
+        }
+        clothes_itor = &((*clothes_itor)->next);
+      }
+      category_itor = &((*category_itor)->next);
+    }
+    gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(liststore));
+    create_column(ORDER_ALL);
+  }
+}
 /* End Query */
 
 /* Maintenance */

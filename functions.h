@@ -27,6 +27,10 @@ Clothes **clothes_search(char name[30]);
 
 void data_out();
 
+void create_list_store(GtkListStore **liststore, int type);
+void insert_into_list_store(GtkListStore **liststore, void *data, int type);
+void append_column(char column_title[][20], int column_line[], int cls);
+void create_column(int type);
 void clean_column();
 char *string(char code);
 char *ctype_to_string(char type);
@@ -63,6 +67,11 @@ void maintenance_delete();
 void query_category_all(void *pass, int call_type);
 void query_clothes_all(void *pass, int call_type);
 void query_order_all(void *pass, int call_type);
+void query_category_code(void *pass, int call_type);
+void query_clothes_name(void *pass, int call_type);
+void query_clothes_code_price(void *pass, int call_type);
+void query_order_customer_date(void *pass, int call_type);
+void query_order_name_mark(void *pass, int call_type);
 /* End Query */
 
 /* Statistics */
