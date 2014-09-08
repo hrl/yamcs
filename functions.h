@@ -11,7 +11,7 @@ void call_last_func();
 void build_UI();
 
 GtkWidget **create_message_dialog(GtkWindow *fwindow, char *messages, GtkMessageType type, GtkWidget **dialog_response);
-GtkWidget **create_edit_dialog(GtkWindow *fwindow, int rws, char argi[][30], GtkWidget **dialog_response);
+GtkWidget **create_edit_dialog(GtkWindow *fwindow, int rws, char argi[][100], GtkWidget **dialog_response);
 
 int category_create(Category **head ,char code, char name[], int clothes_count, Clothes *clothes);
 int clothes_create(Clothes **head, char name[], char type, float price, int order_count, float mark, Category *category, Order *order);
@@ -29,6 +29,8 @@ void data_out();
 
 void clean_column();
 char *string(char code);
+char *ctype_to_string(char type);
+char string_to_ctype(char *str);
 
 /* End Helper function */
 
@@ -59,6 +61,8 @@ void maintenance_delete();
 
 /* Query */
 void query_category_all(void *pass, int call_type);
+void query_clothes_all(void *pass, int call_type);
+void query_order_all(void *pass, int call_type);
 /* End Query */
 
 /* Statistics */
