@@ -59,9 +59,19 @@ struct order
 	struct clothes *clothes;
 };
 
+struct customer
+{
+	char name[20];
+	int order_count;
+	float money_count;
+	float mark;
+	struct customer *next;
+};
+
 typedef struct category Category;
 typedef struct clothes Clothes;
 typedef struct order Order;
+typedef struct customer Customer;
 
 struct call_func
 {

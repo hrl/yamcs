@@ -16,14 +16,17 @@ GtkWidget **create_edit_dialog(GtkWindow *fwindow, int rws, char argi[][100], Gt
 int category_create(Category **head ,char code, char name[], int clothes_count, Clothes *clothes);
 int clothes_create(Clothes **head, char name[], char type, float price, int order_count, float mark, Category *category, Order *order);
 int order_create(Order **head, char date[], char name[], int mark, Clothes *clothes);
+int customer_create(Customer **head, char name[], int clothes_count, float money_count, float mark);
 
 int data_delete();
 int category_delete(void *self);
 int clothes_delete(void *self);
 int order_delete(void *self);
+int customer_delete(void *self);
 
 Category **category_search(char code);
 Clothes **clothes_search(char name[30]);
+Customer **customer_search(Customer **head, char name[20]);
 
 void data_out();
 
@@ -75,6 +78,11 @@ void query_order_name_mark(void *pass, int call_type);
 /* End Query */
 
 /* Statistics */
+void statistics_category(void *pass, int call_type);
+void statistics_year(void *pass, int call_type);
+void statistics_customer(void *pass, int call_type);
+void statistics_quarter(void *pass, int call_type);
+void statistics_all(void *pass, int call_type);
 /* End Statistics */
 
 /* Other Function */

@@ -96,15 +96,15 @@ void build_UI(){
   /* --Query category menu */
   g_signal_connect(G_OBJECT(menuitem_query_category_all), "activate", G_CALLBACK(query_category_all), NULL);
   g_signal_connect(G_OBJECT(menuitem_query_category_code), "activate", G_CALLBACK(query_category_code), NULL);
+  /* --Query clothes menu */
   g_signal_connect(G_OBJECT(menuitem_query_clothes_all), "activate", G_CALLBACK(query_clothes_all), NULL);
   g_signal_connect(G_OBJECT(menuitem_query_clothes_name), "activate", G_CALLBACK(query_clothes_name), NULL);
   g_signal_connect(G_OBJECT(menuitem_query_clothes_code_price), "activate", G_CALLBACK(query_clothes_code_price), NULL);
+  /* --Query order menu */
   g_signal_connect(G_OBJECT(menuitem_query_order_all), "activate", G_CALLBACK(query_order_all), NULL);
   g_signal_connect(G_OBJECT(menuitem_query_order_customer_date), "activate", G_CALLBACK(query_order_customer_date), NULL);
   g_signal_connect(G_OBJECT(menuitem_query_order_name_mark), "activate", G_CALLBACK(query_order_name_mark), NULL);
 
-  /* --Query clothes menu */
-  /* --Query order menu */
   /* -Maintenance menu */
   /* --Maintenance add menu */
   g_signal_connect(G_OBJECT(menuitem_maintenance_add_category), "activate", G_CALLBACK(maintenance_add_category), NULL);
@@ -115,6 +115,11 @@ void build_UI(){
   /* --Maintenance delete */
   g_signal_connect(G_OBJECT(menuitem_maintenance_delete), "activate", G_CALLBACK(maintenance_delete), NULL);
   /* -Statistics menu */
+  g_signal_connect(G_OBJECT(menuitem_statistics_category), "activate", G_CALLBACK(statistics_category), NULL);
+  g_signal_connect(G_OBJECT(menuitem_statistics_year), "activate", G_CALLBACK(statistics_year), NULL);
+  g_signal_connect(G_OBJECT(menuitem_statistics_customer), "activate", G_CALLBACK(statistics_customer), NULL);
+  g_signal_connect(G_OBJECT(menuitem_statistics_quarter), "activate", G_CALLBACK(statistics_quarter), NULL);
+  g_signal_connect(G_OBJECT(menuitem_statistics_all), "activate", G_CALLBACK(statistics_all), NULL);
   /* -Other menu */
   g_signal_connect(G_OBJECT(menuitem_other_about), "activate", G_CALLBACK(other_about), NULL);
   /* End Connect signals */
@@ -262,6 +267,20 @@ int order_create(Order **head, char date[], char name[], int mark, Clothes *clot
   return 1;
 }
 
+int customer_create(Customer **head, char name[], int order_count, float money_count, float mark){
+  Customer *tmp = NULL;
+  tmp = (Customer *)malloc(sizeof(Customer));
+  strcpy(tmp->name, name);
+  tmp->order_count = order_count;
+  tmp->money_count = money_count;
+  tmp->mark = mark;
+
+  tmp->next = *head;
+  *head = tmp;
+
+  return 1;
+}
+
 /* !Container
 void insert_into_container(Container **head, void *data){
   Container *temp = NULL;
@@ -353,6 +372,17 @@ int order_delete(void *self){
   return 1;
 }
 
+int customer_delete(void *self){
+  Customer **target = (Customer **)self;
+  Customer *needfreecu = *target;
+
+  *target = needfreecu->next;
+  free(needfreecu);
+  needfreecu = NULL;
+
+  return 1;
+}
+
 Category **category_search(char code){
   Category **category_itor = &category_head;
   while(*category_itor){
@@ -381,6 +411,16 @@ Clothes **clothes_search(char name[30]){
   return NULL;
 }
 
+Customer **customer_search(Customer **head, char name[20]){
+  while(*head){
+    if(!strcmp((*head)->name, name)){
+      return head;
+    }
+    head = &((*head)->next);
+  }
+  return NULL;
+}
+
 void data_out(){
   Category *category_itor = category_head;
   while(category_itor){
@@ -405,6 +445,181 @@ void data_out(){
     category_itor = category_itor->next;
   }
   g_print("--------------------------\n");
+}
+
+void create_list_store(GtkListStore **liststore, int type){
+  if(type == CATEGORY_ALL){
+    *liststore = gtk_list_store_new(
+      CATEGORY_ALL_COLUMNS,
+      G_TYPE_POINTER,
+      G_TYPE_INT,
+      G_TYPE_STRING, //CATEGORY_ALL_CODE
+      G_TYPE_STRING, //CATEGORY_ALL_NAME
+      G_TYPE_INT     //CATEGORY_ALL_CLOTHES_COUNT
+    );
+  } else if (type == CLOTHES_ALL){
+    *liststore = gtk_list_store_new(
+      CLOTHES_ALL_COLUMNS,
+      G_TYPE_POINTER,
+      G_TYPE_INT,
+      G_TYPE_STRING, //CLOTHES_ALL_CODE
+      G_TYPE_STRING, //CLOTHES_ALL_NAME
+      G_TYPE_STRING, //CLOTHES_ALL_CTYPE
+      G_TYPE_FLOAT,  //CLOTHES_ALL_PRICE
+      G_TYPE_FLOAT,  //CLOTHES_ALL_MARK
+      G_TYPE_INT     //CLOTHES_ALL_ORDER_COUNT
+    );
+  } else if (type == ORDER_ALL){
+    *liststore = gtk_list_store_new(
+      ORDER_ALL_COLUMNS,
+      G_TYPE_POINTER,
+      G_TYPE_INT,
+      G_TYPE_STRING, //ORDER_ALL_CNAME
+      G_TYPE_STRING, //ORDER_ALL_DATE
+      G_TYPE_STRING, //ORDER_ALL_NAME
+      G_TYPE_INT     //ORDER_ALL_MARK
+    );
+  } else if(type == CATEGORY_STATS){
+    *liststore = gtk_list_store_new(
+      CATEGORY_STATS_COLUMNS,
+      G_TYPE_POINTER,
+      G_TYPE_INT,
+      G_TYPE_STRING, //CATEGORY_STATS_CODE
+      G_TYPE_STRING, //CATEGORY_STATS_NAME
+      G_TYPE_INT,    //CATEGORY_STATS_ORDER_COUNT
+      G_TYPE_FLOAT,  //CATEGORY_STATS_SALES_COUNT
+      G_TYPE_INT,    //CATEGORY_STATS_MARKL3_COUNT
+      G_TYPE_INT     //CATEGORY_STATS_MARKG3_COUNT
+    );   
+  } else if(type == CLOTHES_YEAR){
+    *liststore = gtk_list_store_new(
+      CLOTHES_YEAR_COLUMNS,
+      G_TYPE_POINTER,
+      G_TYPE_INT,
+      G_TYPE_STRING, //CLOTHES_YEAR_NAME
+      G_TYPE_STRING, //CLOTHES_YEAR_CNAME
+      G_TYPE_INT,    //CLOTHES_YEAR_ORDER_COUNT
+      G_TYPE_FLOAT,  //CLOTHES_YEAR_SALES_COUNT
+      G_TYPE_FLOAT   //CLOTHES_YEAR_MARK
+    );   
+  } else if(type == CUSTOMER_STATS){
+    *liststore = gtk_list_store_new(
+      CUSTOMER_STATS_COLUMNS,
+      G_TYPE_POINTER,
+      G_TYPE_INT,
+      G_TYPE_STRING, //CUSTOMER_STATS_NAME
+      G_TYPE_INT,    //CUSTOMER_STATS_ORDER_COUNT
+      G_TYPE_FLOAT,  //CUSTOMER_STATS_MONEY_COUNT
+      G_TYPE_FLOAT   //CUSTOMER_STATS_MARK
+    );  
+  } else if(type == ALL_STATS){
+    *liststore = gtk_list_store_new(
+      CUSTOMER_STATS_COLUMNS,
+      G_TYPE_POINTER,
+      G_TYPE_INT,
+      G_TYPE_INT,    //ALL_STATS_ORDER_COUNT
+      G_TYPE_FLOAT,  //ALL_STATS_SALES_COUNT
+      G_TYPE_INT,    //ALL_STATS_MARKL3_COUNT
+      G_TYPE_INT     //ALL_STATS_MARKG3_COUNT
+    );  
+  }
+}
+
+void insert_into_list_store(GtkListStore **liststore, void *data, int type){
+  GtkTreeIter iter;
+  if(type == CATEGORY_ALL){
+    Category **category_itor = (Category **)data;
+    gtk_list_store_append(*liststore, &iter);
+    gtk_list_store_set(
+      *liststore, &iter,
+      CATEGORY_ALL_POINTER, category_itor,
+      CATEGORY_ALL_TYPE, TYPE_CATEGORY,
+      CATEGORY_ALL_CODE, string((*category_itor)->code),
+      CATEGORY_ALL_NAME, (*category_itor)->name,
+      CATEGORY_ALL_CLOTHES_COUNT, (*category_itor)->clothes_count,
+      -1);
+  } else if(type == CLOTHES_ALL){
+    Clothes **clothes_itor = (Clothes **)data;
+    gtk_list_store_append(*liststore, &iter);
+    gtk_list_store_set(
+      *liststore, &iter,
+      CLOTHES_ALL_POINTER, clothes_itor,
+      CLOTHES_ALL_TYPE, TYPE_CLOTHES,
+      CLOTHES_ALL_CODE, string((*clothes_itor)->category->code),
+      CLOTHES_ALL_NAME, (*clothes_itor)->name,
+      CLOTHES_ALL_CTYPE, ctype_to_string((*clothes_itor)->type),
+      CLOTHES_ALL_PRICE, (*clothes_itor)->price,
+      CLOTHES_ALL_MARK, (*clothes_itor)->mark,
+      CLOTHES_ALL_ORDER_COUNT, (*clothes_itor)->order_count,
+      -1);
+  } else if(type == ORDER_ALL){
+    Order **order_itor = (Order **)data;
+    gtk_list_store_append(*liststore, &iter);
+    gtk_list_store_set(
+      *liststore, &iter,
+      ORDER_ALL_POINTER, order_itor,
+      ORDER_ALL_TYPE, TYPE_ORDER,
+      ORDER_ALL_CNAME, (*order_itor)->clothes->name,
+      ORDER_ALL_DATE, (*order_itor)->date,
+      ORDER_ALL_NAME, (*order_itor)->name,
+      ORDER_ALL_MARK, (*order_itor)->mark,
+      -1);
+  }
+}
+
+void append_column(char column_title[][20], int column_line[], int cls){
+  GtkCellRenderer *renderer;
+  GtkTreeViewColumn *column;
+  renderer = gtk_cell_renderer_text_new();
+  int i = 0;
+  for(i=0; i<cls; i++){
+    column = gtk_tree_view_column_new_with_attributes(
+      column_title[i],
+      renderer,
+      "text", column_line[i],
+      NULL);
+    gtk_tree_view_column_set_sort_column_id(column, column_line[i]);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+  }
+}
+
+void create_column(int type){
+  if(type == CATEGORY_ALL){
+    char column_title[3][20] = {"分类编码", "分类名称", "服装数"};
+    int column_line[3] = {CATEGORY_ALL_CODE, CATEGORY_ALL_NAME, CATEGORY_ALL_CLOTHES_COUNT};
+    int cls = 3;
+    append_column(column_title, column_line, cls);
+  } else if(type == CLOTHES_ALL){ 
+    char column_title[6][20] = {"分类编码", "服装名称", "式样", "单价", "评价指数", "售出件数"};
+    int column_line[6] = {CLOTHES_ALL_CODE, CLOTHES_ALL_NAME, CLOTHES_ALL_CTYPE, CLOTHES_ALL_PRICE, CLOTHES_ALL_MARK, CLOTHES_ALL_ORDER_COUNT};
+    int cls = 6;
+    append_column(column_title, column_line, cls);
+  } else if(type == ORDER_ALL){
+    char column_title[4][20] = {"服装名称", "销售日期", "客户名称", "客户评价"};
+    int column_line[4] = {ORDER_ALL_CNAME, ORDER_ALL_DATE, ORDER_ALL_NAME, ORDER_ALL_MARK};
+    int cls = 4;
+    append_column(column_title, column_line, cls);
+  } else if(type == CATEGORY_STATS){
+    char column_title[6][20] = {"分类编码", "分类名称", "销售总件数", "销售总额", "评价>=3件数", "评价<3件数"};
+    int column_line[6] = {CATEGORY_STATS_CODE, CATEGORY_STATS_NAME, CATEGORY_STATS_ORDER_COUNT, CATEGORY_STATS_SALES_COUNT, CATEGORY_STATS_MARKL3_COUNT, CATEGORY_STATS_MARKG3_COUNT};
+    int cls = 6;
+    append_column(column_title, column_line, cls);
+  } else if(type == CLOTHES_YEAR){
+    char column_title[5][20] = {"服装名称", "分类名称", "售出件数", "销售金额", "评价指数"};
+    int column_line[5] = {CLOTHES_YEAR_NAME, CLOTHES_YEAR_CNAME, CLOTHES_YEAR_ORDER_COUNT, CLOTHES_YEAR_SALES_COUNT, CLOTHES_YEAR_MARK};
+    int cls = 5;
+    append_column(column_title, column_line, cls);
+  } else if(type == CUSTOMER_STATS){
+    char column_title[4][20] = {"客户名称", "所购服装总数", "消费总金额", "总体评价度"};
+    int column_line[4] = {CUSTOMER_STATS_NAME, CUSTOMER_STATS_ORDER_COUNT, CUSTOMER_STATS_MONEY_COUNT, CUSTOMER_STATS_MARK};
+    int cls = 4;
+    append_column(column_title, column_line, cls);
+  } else if(type ==ALL_STATS){
+    char column_title[4][20] = {"销售总件数", "销售总额", "评价>=3件数", "评价<3件数"};
+    int column_line[4] = {ALL_STATS_ORDER_COUNT, ALL_STATS_SALES_COUNT, ALL_STATS_MARKL3_COUNT, ALL_STATS_MARKG3_COUNT};
+    int cls = 4;
+    append_column(column_title, column_line, cls);
+  }
 }
 
 void clean_column(){
@@ -469,6 +684,11 @@ int date_check(int date){
     return 0;
   }
   return 1;
+}
+
+int date_get_quarter(int date){
+  int month = (date % 10000) / 100;
+  return (month-1) / 3;
 }
 
 /* End Helper function */
@@ -761,7 +981,6 @@ void file_new(){
   g_print("Category:\n code: %c\n", (result_category)->code);
   g_print("Clothes:\n name: %s\n", (result_clothes)->name);
   data_out();
-
   
   result_category = *category_search('1');
 
@@ -850,116 +1069,6 @@ void file_quit(){
 
 
 /* Query */
-void create_list_store(GtkListStore **liststore, int type){
-  if(type == CATEGORY_ALL){
-    *liststore = gtk_list_store_new(
-      CATEGORY_ALL_COLUMNS,
-      G_TYPE_POINTER,
-      G_TYPE_INT,
-      G_TYPE_STRING, //CATEGORY_ALL_CODE
-      G_TYPE_STRING, //CATEGORY_ALL_NAME
-      G_TYPE_INT     //CATEGORY_ALL_CLOTHES_COUNT
-      );
-  } else if (type == CLOTHES_ALL){
-    *liststore = gtk_list_store_new(
-      CLOTHES_ALL_COLUMNS,
-      G_TYPE_POINTER,
-      G_TYPE_INT,
-      G_TYPE_STRING, //CLOTHES_ALL_CODE
-      G_TYPE_STRING, //CLOTHES_ALL_NAME
-      G_TYPE_STRING, //CLOTHES_ALL_CTYPE
-      G_TYPE_FLOAT,  //CLOTHES_ALL_PRICE
-      G_TYPE_FLOAT,  //CLOTHES_ALL_MARK
-      G_TYPE_INT     //CLOTHES_ALL_ORDER_COUNT
-      );
-  } else if (type == ORDER_ALL){
-    *liststore = gtk_list_store_new(
-      ORDER_ALL_COLUMNS,
-      G_TYPE_POINTER,
-      G_TYPE_INT,
-      G_TYPE_STRING, //ORDER_ALL_CNAME
-      G_TYPE_STRING, //ORDER_ALL_DATE
-      G_TYPE_STRING, //ORDER_ALL_NAME
-      G_TYPE_INT     //ORDER_ALL_MARK
-      );
-  }
-}
-
-void insert_into_list_store(GtkListStore **liststore, void *data, int type){
-  GtkTreeIter iter;
-  if(type == CATEGORY_ALL){
-    Category **category_itor = (Category **)data;
-    gtk_list_store_append(*liststore, &iter);
-    gtk_list_store_set(
-      *liststore, &iter,
-      CATEGORY_ALL_POINTER, category_itor,
-      CATEGORY_ALL_TYPE, TYPE_CATEGORY,
-      CATEGORY_ALL_CODE, string((*category_itor)->code),
-      CATEGORY_ALL_NAME, (*category_itor)->name,
-      CATEGORY_ALL_CLOTHES_COUNT, (*category_itor)->clothes_count,
-      -1);
-  } else if(type == CLOTHES_ALL){
-    Clothes **clothes_itor = (Clothes **)data;
-    gtk_list_store_append(*liststore, &iter);
-    gtk_list_store_set(
-      *liststore, &iter,
-      CLOTHES_ALL_POINTER, clothes_itor,
-      CLOTHES_ALL_TYPE, TYPE_CLOTHES,
-      CLOTHES_ALL_CODE, string((*clothes_itor)->category->code),
-      CLOTHES_ALL_NAME, (*clothes_itor)->name,
-      CLOTHES_ALL_CTYPE, ctype_to_string((*clothes_itor)->type),
-      CLOTHES_ALL_PRICE, (*clothes_itor)->price,
-      CLOTHES_ALL_MARK, (*clothes_itor)->mark,
-      CLOTHES_ALL_ORDER_COUNT, (*clothes_itor)->order_count,
-      -1);
-  } else if(type == ORDER_ALL){
-    Order **order_itor = (Order **)data;
-    gtk_list_store_append(*liststore, &iter);
-    gtk_list_store_set(
-      *liststore, &iter,
-      ORDER_ALL_POINTER, order_itor,
-      ORDER_ALL_TYPE, TYPE_ORDER,
-      ORDER_ALL_CNAME, (*order_itor)->clothes->name,
-      ORDER_ALL_DATE, (*order_itor)->date,
-      ORDER_ALL_NAME, (*order_itor)->name,
-      ORDER_ALL_MARK, (*order_itor)->mark,
-      -1);
-  }
-}
-
-void append_column(char column_title[][20], int column_line[], int cls){
-  GtkCellRenderer *renderer;
-  GtkTreeViewColumn *column;
-  renderer = gtk_cell_renderer_text_new();
-  int i = 0;
-  for(i=0; i<cls; i++){
-    column = gtk_tree_view_column_new_with_attributes(
-      column_title[i],
-      renderer,
-      "text", column_line[i],
-      NULL);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
-  }
-}
-
-void create_column(int type){
-  if(type == CATEGORY_ALL){
-    char column_title[3][20] = {"分类编码", "分类名称", "服装数"};
-    int column_line[3] = {CATEGORY_ALL_CODE, CATEGORY_ALL_NAME, CATEGORY_ALL_CLOTHES_COUNT};
-    int cls = 3;
-    append_column(column_title, column_line, cls);
-  } else if(type == CLOTHES_ALL){ 
-    char column_title[6][20] = {"分类编码", "服装名称", "式样", "单价", "评价指数", "售出件数"};
-    int column_line[6] = {CLOTHES_ALL_CODE, CLOTHES_ALL_NAME, CLOTHES_ALL_CTYPE, CLOTHES_ALL_PRICE, CLOTHES_ALL_MARK, CLOTHES_ALL_ORDER_COUNT};
-    int cls = 6;
-    append_column(column_title, column_line, cls);
-  } else if(type == ORDER_ALL){
-    char column_title[4][20] = {"服装名称", "销售日期", "客户名称", "客户评价"};
-    int column_line[4] = {ORDER_ALL_CNAME, ORDER_ALL_DATE, ORDER_ALL_NAME, ORDER_ALL_MARK};
-    int cls = 4;
-    append_column(column_title, column_line, cls);
-  }
-}
 
 void query_category_all(void *pass, int call_type){
   error_out("query_category_all called");
@@ -1949,6 +2058,9 @@ void maintenance_delete(){
   gpointer *self;
 
   if(gtk_tree_selection_get_selected(selection, &model, &iter)){
+    /* check */
+    gtk_tree_model_get(model, &iter, 0, &self, -1);
+    if(!self) return;
 
     GtkWidget **question_dialog = (GtkWidget **)malloc(sizeof(GtkWidget *)*(1));
     question_dialog = create_message_dialog(window, "确定要删除吗?", GTK_MESSAGE_QUESTION, question_dialog);
@@ -1982,6 +2094,7 @@ void maintenance_edit(){
       case TYPE_CATEGORY: success = maintenance_category_dialog(self);break;
       case TYPE_CLOTHES: success = maintenance_clothes_dialog(self);break;
       case TYPE_ORDER: success = maintenance_order_dialog(self);break;
+      case TYPE_OTHER: return;
     }
     if(success){
       call_last_func();
@@ -1993,6 +2106,318 @@ void maintenance_edit(){
   }
 }
 /* End Maintenance */
+
+/* Statistics */
+void statistics_category(void *pass, int call_type){
+  error_out("statistics_category called");
+  last_func = &statistics_category;
+  clean_column();
+
+  GtkListStore *liststore;
+  GtkTreeIter iter;
+  create_list_store(&liststore, CATEGORY_STATS);
+
+  Category **category_itor = &category_head;
+  while(*category_itor){
+    int order_count = 0;
+    float sales_count = 0;
+    int markl3_count = 0;
+    int markg3_count = 0;
+    Clothes **clothes_itor = &((*category_itor)->clothes);
+    while(*clothes_itor){
+      if((*clothes_itor)->mark >= 3){
+        markl3_count++;
+      } else {
+        markg3_count++;
+      }
+      order_count += ((*clothes_itor)->order_count);
+      sales_count += ((*clothes_itor)->order_count) * ((*clothes_itor)->price);
+      clothes_itor = &((*clothes_itor)->next);
+    }
+    gtk_list_store_append(liststore, &iter);
+    gtk_list_store_set(
+      liststore, &iter,
+      CATEGORY_STATS_POINTER, category_itor,
+      CATEGORY_STATS_TYPE, TYPE_CATEGORY,
+      CATEGORY_STATS_CODE, string((*category_itor)->code),
+      CATEGORY_STATS_NAME, (*category_itor)->name,
+      CATEGORY_STATS_ORDER_COUNT, order_count,
+      CATEGORY_STATS_SALES_COUNT, sales_count,
+      CATEGORY_STATS_MARKL3_COUNT, markl3_count,
+      CATEGORY_STATS_MARKG3_COUNT, markg3_count,
+      -1);
+    category_itor = &((*category_itor)->next);
+  }
+  gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(liststore));
+  create_column(CATEGORY_STATS);
+}
+
+void statistics_year(void *pass, int call_type){
+  error_out("statistics_year called");
+
+  static int year_max;
+  static int year_min;
+  int success = 0;
+
+  if(call_type != CALL_TYPE_REDO){
+    int rws = 2;
+    char title[100];
+    char argi[rws*2+1][100];
+    strcpy(argi[0], "统计年度服装销售信息");
+    strcpy(argi[1], "年份上限(包含)");
+    strcpy(argi[2], "年份下限(包含)");
+    strcpy(argi[3], "");
+    strcpy(argi[4], "");
+
+    GtkWidget **dialog_result = (GtkWidget **)malloc(sizeof(GtkWidget *)*(rws*2+2));
+    dialog_result = create_edit_dialog(window, rws, argi, dialog_result);
+    gtk_widget_show_all(dialog_result[0]);
+
+    char validate_message[100];
+    validate_message[0] = '\0';
+    GtkEntryBuffer *buffer;
+    GtkWidget **warning_dialog = (GtkWidget **)malloc(sizeof(GtkWidget *)*(1));
+
+    while(gtk_dialog_run(GTK_DIALOG(dialog_result[0])) == GTK_RESPONSE_ACCEPT){
+      validate_message[0] = '\0';
+      buffer = gtk_entry_get_buffer(GTK_ENTRY(dialog_result[2*1+1]));
+      year_max = atoi(gtk_entry_buffer_get_text(buffer));
+      buffer = gtk_entry_get_buffer(GTK_ENTRY(dialog_result[2*2+1]));
+      year_min = atoi(gtk_entry_buffer_get_text(buffer));
+
+      /* error check */
+      if(validate_message[0] != '\0'){
+        warning_dialog = create_message_dialog(GTK_WINDOW(dialog_result[0]), validate_message, GTK_MESSAGE_WARNING, warning_dialog);
+        gtk_widget_show_all(warning_dialog[0]);
+        gtk_dialog_run(GTK_DIALOG(warning_dialog[0]));
+        gtk_widget_destroy(GTK_WIDGET(warning_dialog[0]));
+        continue;
+      }
+      /* end error check */
+
+      success = 1;
+      break;
+    }
+
+    gtk_widget_destroy(GTK_WIDGET(dialog_result[0]));
+    
+    free(warning_dialog);
+    free(dialog_result);
+  }
+
+  if(success || call_type == CALL_TYPE_REDO){
+    last_func = &statistics_year;
+    clean_column();
+
+    GtkListStore *liststore;
+    GtkTreeIter iter;
+    create_list_store(&liststore, CLOTHES_YEAR);
+
+    Category **category_itor = &category_head;
+    while(*category_itor){
+      Clothes **clothes_itor = &((*category_itor)->clothes);
+      while(*clothes_itor){
+        int order_count = 0;
+        float sales_count = 0;
+        float mark = 0;
+        Order **order_itor = &((*clothes_itor)->order);
+        while(*order_itor){
+          if( (!year_max || (atoi((*order_itor)->date) / 10000) <= year_max) &&
+              (!year_min || (atoi((*order_itor)->date) / 10000) >= year_min) ){
+            mark = (mark * order_count + ((*order_itor)->mark)) / (order_count + 1.0);
+            sales_count += (*clothes_itor)->price;
+            order_count++;
+          }
+          order_itor = &((*order_itor)->next);
+        }
+        gtk_list_store_append(liststore, &iter);
+        gtk_list_store_set(
+          liststore, &iter,
+          CLOTHES_YEAR_POINTER, clothes_itor,
+          CLOTHES_YEAR_TYPE, TYPE_CLOTHES,
+          CLOTHES_YEAR_NAME, (*clothes_itor)->name,
+          CLOTHES_YEAR_CNAME, (*clothes_itor)->category->name,
+          CLOTHES_YEAR_ORDER_COUNT, order_count,
+          CLOTHES_YEAR_SALES_COUNT, sales_count,
+          CLOTHES_YEAR_MARK, mark,
+          -1);
+        clothes_itor = &((*clothes_itor)->next);
+      }
+      category_itor = &((*category_itor)->next);
+    }
+    gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(liststore));
+    create_column(CLOTHES_YEAR);
+  }
+}
+
+void statistics_customer(void *pass, int call_type){
+  Customer *customer_head = NULL;
+  error_out("statistics_customer called");
+  last_func = &statistics_customer;
+  clean_column();
+
+  GtkListStore *liststore;
+  GtkTreeIter iter;
+  create_list_store(&liststore, CUSTOMER_STATS);
+
+  Category **category_itor = &category_head;
+  while(*category_itor){
+    Clothes **clothes_itor = &((*category_itor)->clothes);
+    while(*clothes_itor){
+      Order **order_itor = &((*clothes_itor)->order);
+      while(*order_itor){
+        Customer **search_result = customer_search(&customer_head, (*order_itor)->name);
+        if(search_result){
+          (*search_result)->mark = (((*search_result)->mark) * ((*search_result)->order_count) + ((*order_itor)->mark)) / (((*search_result)->order_count)+1);
+          ((*search_result)->money_count) += ((*order_itor)->clothes->price);
+          ((*search_result)->order_count)++;
+        } else {
+          customer_create(&customer_head, (*order_itor)->name, 1, (*order_itor)->clothes->price, (*order_itor)->mark);
+        }
+        order_itor = &((*order_itor)->next);
+      }
+      clothes_itor = &((*clothes_itor)->next);
+    }
+    category_itor = &((*category_itor)->next);
+  }
+
+  Customer **customer_itor = &customer_head;
+  while(*customer_itor){
+    gtk_list_store_append(liststore, &iter);
+    gtk_list_store_set(
+      liststore, &iter,
+      CUSTOMER_STATS_POINTER, NULL,
+      CUSTOMER_STATS_TYPE, TYPE_OTHER,
+      CUSTOMER_STATS_NAME, (*customer_itor)->name,
+      CUSTOMER_STATS_ORDER_COUNT, (*customer_itor)->order_count,
+      CUSTOMER_STATS_MONEY_COUNT, (*customer_itor)->money_count,
+      CUSTOMER_STATS_MARK, (*customer_itor)->mark,
+      -1);
+    customer_delete(customer_itor);
+  }
+  gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(liststore));
+  create_column(CUSTOMER_STATS);
+}
+
+void statistics_quarter(void *pass, int call_type){
+  last_func = &statistics_quarter;
+  clean_column();
+
+  int season_count[4][5];
+  float season_sales[4][5];
+  char column_title[6][20] = {"季节", "", "", "", "", ""};
+  int column_line[6] = {QUARTER_STATS_NAME, QUARTER_STATS_C1_COUNT, QUARTER_STATS_C2_COUNT, QUARTER_STATS_C3_COUNT, QUARTER_STATS_C4_COUNT, QUARTER_STATS_C5_COUNT};
+  int cas = 0;
+  int i, m;
+  for(i=0; i<4; i++){
+    for(m=0; m<5; m++){
+      season_count[i][m] = 0;
+      season_sales[i][m] = 0;
+    }
+  }
+
+  Category **category_itor = &category_head;
+  while(*category_itor){
+    Clothes **clothes_itor = &((*category_itor)->clothes);
+    while(*clothes_itor){
+      Order **order_itor = &((*clothes_itor)->order);
+      while(*order_itor){
+        season_count[date_get_quarter(atoi((*order_itor)->date))][cas] += 1;
+        season_sales[date_get_quarter(atoi((*order_itor)->date))][cas] += (*order_itor)->clothes->price;
+        order_itor = &((*order_itor)->next);
+      }
+      clothes_itor = &((*clothes_itor)->next);
+    }
+    cas++;
+    strcpy(column_title[cas], (*category_itor)->name);
+    category_itor = &((*category_itor)->next);
+  }
+  char rw_data[8][6][20];
+  char season_list[8][20] = {"春季售出件数", "春季总销售额", "夏季售出件数", "夏季总销售额", "秋季售出件数", "秋季总销售额", "冬季售出件数", "冬季总销售额"};
+  for(i=0; i<4; i++){
+    for(m=0; m<5; m++){
+      sprintf(rw_data[2*i][m+1], "%d", season_count[i][m]);
+      sprintf(rw_data[2*i+1][m+1], "%f", season_sales[i][m]);
+    }
+    strcpy(rw_data[2*i][0], season_list[2*i]);
+    strcpy(rw_data[2*i+1][0], season_list[2*i+1]);
+  }
+
+  GtkListStore *liststore;
+  GtkTreeIter iter;
+
+  liststore = gtk_list_store_new(
+    QUARTER_STATS_COLUMNS,
+    G_TYPE_POINTER,
+    G_TYPE_INT,
+    G_TYPE_STRING, //QUARTER_STATS_NAME
+    G_TYPE_STRING, //QUARTER_STATS_C1_COUNT
+    G_TYPE_STRING, //QUARTER_STATS_C2_COUNT
+    G_TYPE_STRING, //QUARTER_STATS_C3_COUNT
+    G_TYPE_STRING, //QUARTER_STATS_C4_COUNT
+    G_TYPE_STRING  //QUARTER_STATS_C5_COUNT
+  );
+
+  for(i=0; i<8; i++){
+    gtk_list_store_append(liststore, &iter);
+    gtk_list_store_set(
+      liststore, &iter,
+      QUARTER_STATS_POINTER, NULL,
+      QUARTER_STATS_TYPE, TYPE_OTHER,
+      QUARTER_STATS_NAME, rw_data[i][0],
+      QUARTER_STATS_C1_COUNT, rw_data[i][1],
+      QUARTER_STATS_C2_COUNT, rw_data[i][2],
+      QUARTER_STATS_C3_COUNT, rw_data[i][3],
+      QUARTER_STATS_C4_COUNT, rw_data[i][4],
+      QUARTER_STATS_C5_COUNT, rw_data[i][5],
+      -1);
+  }
+  gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(liststore));
+  append_column(column_title, column_line, cas+1);
+}
+
+void statistics_all(void *pass, int call_type){
+  last_func = &statistics_all;
+  clean_column();
+
+  GtkListStore *liststore;
+  GtkTreeIter iter;
+  create_list_store(&liststore, ALL_STATS);
+  int order_count = 0;
+  float sales_count = 0;
+  int markl3_count = 0;
+  int markg3_count = 0;
+
+  Category **category_itor = &category_head;
+  while(*category_itor){
+    Clothes **clothes_itor = &((*category_itor)->clothes);
+    while(*clothes_itor){
+      if((*clothes_itor)->mark >= 3){
+        markl3_count++;
+      } else {
+        markg3_count++;
+      }
+      order_count += ((*clothes_itor)->order_count);
+      sales_count += ((*clothes_itor)->order_count) * ((*clothes_itor)->price);
+      clothes_itor = &((*clothes_itor)->next);
+    }
+    category_itor = &((*category_itor)->next);
+  }
+
+  gtk_list_store_append(liststore, &iter);
+  gtk_list_store_set(
+    liststore, &iter,
+    ALL_STATS_POINTER, NULL,
+    ALL_STATS_TYPE, TYPE_OTHER,
+    ALL_STATS_ORDER_COUNT, order_count,
+    ALL_STATS_SALES_COUNT, sales_count,
+    ALL_STATS_MARKL3_COUNT, markl3_count,
+    ALL_STATS_MARKG3_COUNT, markg3_count,
+    -1);
+  gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(liststore));
+  create_column(ALL_STATS);
+}
+/* End Statistics */
 
 /* Other Function */
 void other_about(){
