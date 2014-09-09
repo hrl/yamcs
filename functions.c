@@ -79,7 +79,7 @@ void build_UI(){
 
   /* Connect signals */
   /* Main window */
-  g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(file_quit), NULL);
+  g_signal_connect(G_OBJECT(window), "delete-event", G_CALLBACK(file_quit), NULL);
   /* -File menu */
   g_signal_connect(G_OBJECT(menuitem_file_new), "activate", G_CALLBACK(file_new), NULL);
   g_signal_connect(G_OBJECT(menuitem_file_open), "activate", G_CALLBACK(file_open), NULL);
@@ -1363,14 +1363,14 @@ void query_order_name_mark(void *pass, int call_type){
     while(*category_itor){
       Clothes **clothes_itor = &((*category_itor)->clothes);
       while(*clothes_itor){
-        if( strstr((*clothes_itor)->name, name) &&
-            (!mark_max || (*clothes_itor)->mark <= mark_max) &&
-            (!mark_min || (*clothes_itor)->mark >= mark_min) ){
-          Order **order_itor = &((*clothes_itor)->order);
-          while(*order_itor){
+        Order **order_itor = &((*clothes_itor)->order);
+        while(*order_itor){
+          if( strstr((*order_itor)->clothes->name, name) &&
+            (!mark_max || (*order_itor)->mark <= mark_max) &&
+            (!mark_min || (*order_itor)->mark >= mark_min) ){
             insert_into_list_store(&liststore, order_itor, ORDER_ALL);
-            order_itor = &((*order_itor)->next);
           }
+          order_itor = &((*order_itor)->next);
         }
         clothes_itor = &((*clothes_itor)->next);
       }
@@ -1796,10 +1796,14 @@ void statistics_category(void *pass, int call_type){
     int markg3_count = 0;
     Clothes **clothes_itor = &((*category_itor)->clothes);
     while(*clothes_itor){
-      if((*clothes_itor)->mark >= 3){
-        markl3_count++;
-      } else {
-        markg3_count++;
+      Order **order_itor =  &((*clothes_itor)->order);
+      while(*order_itor){
+        if((*order_itor)->mark >= 3){
+          markl3_count++;
+        } else {
+          markg3_count++;
+        }
+        order_itor = &((*order_itor)->next);
       }
       order_count += ((*clothes_itor)->order_count);
       sales_count += ((*clothes_itor)->order_count) * ((*clothes_itor)->price);
@@ -2061,10 +2065,14 @@ void statistics_all(void *pass, int call_type){
   while(*category_itor){
     Clothes **clothes_itor = &((*category_itor)->clothes);
     while(*clothes_itor){
-      if((*clothes_itor)->mark >= 3){
-        markl3_count++;
-      } else {
-        markg3_count++;
+      Order **order_itor =  &((*clothes_itor)->order);
+      while(*order_itor){
+        if((*order_itor)->mark >= 3){
+          markl3_count++;
+        } else {
+          markg3_count++;
+        }
+        order_itor = &((*order_itor)->next);
       }
       order_count += ((*clothes_itor)->order_count);
       sales_count += ((*clothes_itor)->order_count) * ((*clothes_itor)->price);
