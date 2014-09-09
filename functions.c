@@ -828,6 +828,7 @@ void file_new(){
   save_confirmation();
   close_file();
   clean_var();
+  clean_column();
   updated = TRUE;
 }
 
@@ -852,6 +853,7 @@ void file_open(){
   }
   free(filename);
   filename = NULL;
+  clean_column();
 }
 
 void file_save(){
