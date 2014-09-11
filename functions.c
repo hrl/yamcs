@@ -191,7 +191,7 @@ void save_confirmation(){
     gtk_widget_show_all(question_dialog[0]);
 
     if(gtk_dialog_run(GTK_DIALOG(question_dialog[0])) == GTK_RESPONSE_YES){
-      save_file();
+      file_save();
     }
     gtk_widget_destroy(GTK_WIDGET(question_dialog[0]));
     free(question_dialog);
